@@ -603,7 +603,7 @@ Subclase de `dict` con `t` (vector tiempo) y matrices por clave. Helpers:
 
 Bloque `SubredMNA` (`mna.py`) encapsula subredes eléctricas no causales. Primitivas: `Nodo`, `Resistor(R)`, `Capacitor(C)`, `Inductor(L)`, `FuenteTension`, `FuenteCorriente`, `Interruptor(R_{on},R_{off},control)`, `DiodoIdeal(R_{on},R_{off},V_f)`, `VCVS`, `VCCS`, `MutualInductor`.
 
-Estampación Dommel: $G\mathbf{x}+C\dot{\mathbf{x}}=\mathbf{b}$, con $C_{eq}=C/h$ (Euler hacia atrás, método fijado por el núcleo). Sistema $A\mathbf{x}\sb{k+1}=\mathbf{b}\sb{eq}$ resuelto por LU densa $128\times128$ con pivoteo parcial. Diodos: iteración de complementariedad $v_d\ge V_f \perp i_d\ge0$ con $G_{on}=1/R_{on}$. Exposición al exterior vía `n_out` tensiones diferenciales e corrientes de rama.
+Estampación Dommel: $G\mathbf{x}+C\dot{\mathbf{x}}=\mathbf{b}$, con $C_{eq}=C/h$ (Euler hacia atrás, método fijado por el núcleo). Sistema $A\mathbf{x}{k+1}=\mathbf{b}{eq}$ resuelto por LU densa $128\times128$ con pivoteo parcial. Diodos: iteración de complementariedad $v_d\ge V_f \perp i_d\ge0$ con $G_{on}=1/R_{on}$. Exposición al exterior vía `n_out` tensiones diferenciales e corrientes de rama.
 
 ---
 
