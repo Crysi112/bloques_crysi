@@ -149,6 +149,61 @@ $$Pickup_{50} = 138.19\ A \times 1.7 = 234.92\ A$$
 
 ---
 
+## Criterio de Selección de Curva y Calibración del Dial de Tiempo (51)
+
+Antes de fijar el dial de tiempo (Time Dial, TD) del elemento 51, el protocolo normativo (IEEE C37.112 / IEC 60255, coordinado con IEEE 242) exige justificar primero **qué forma de curva usar** y **dónde debe quedar posicionada** en el plano TCC. Resumen del criterio aplicado:
+
+**1. Ventana de operación (pasillo TCC).** La curva del 51 debe quedar:
+- **Por encima** del perfil de arranque del motor (con margen para tolerar la asimetría/DC offset del inrush en los primeros ciclos), y
+- **Por debajo** de la curva de daño térmico del motor (Safe Stall Time, en frío y en caliente, dato de fabricante).
+
+**2. Forma de la curva: Extremadamente Inversa (EI).** El calentamiento del estator ante sobrecarga prolongada sigue el principio de energía pasante constante, $I^2t = K$. De las familias normalizadas (IEEE C37.112: Moderadamente Inversa, Muy Inversa, Extremadamente Inversa), la curva **EI** es la que replica esa pendiente $I^2t$, por lo que "abraza" la curva de daño del motor sin cruzarla: da disparo rápido ante fallas/sobrecorrientes altas y tiempo amplio ante sobrecargas ligeras. Usar una curva Normalmente Inversa (SI) tendría pendiente distinta a la del daño térmico, generando zonas de sub- o sobre-protección.
+
+**3. Coordinación aguas arriba.** Tanto el fusible de respaldo (FRN-R-35, curva dual-element ≈ $I^2t$) como la curva de daño del transformador (ANSI/IEEE C57.109, también $I^2t$ — ver sección correspondiente) son perfiles térmicos de la misma familia. Usar EI en el 51 mantiene las tres curvas (motor, relé, fusible/transformador) con pendientes paralelas en el TCC, preservando selectividad en toda la banda de corriente.
+
+**4. Calibración del Time Dial (TD).** Con la forma EI fijada, el TD se ajusta iterando hasta que, a la corriente de rotor bloqueado (LRA), el relé dispare **antes** del Safe Stall Time (caliente) del motor, dejando un margen empírico de **1–2 s** por encima del tiempo real de arranque (para no disparar en un arranque normal). Ecuación general IEEE C37.112:
+ 
+$$t(M) = TD\times\left[\frac{A}{M^{p}-1}+B\right], \qquad M=\frac{I}{Pickup_{51}}$$
+ 
+**Constantes A, B, p por familia de curva (IEEE C37.112):**
+ 
+| Curva (IEEE C37.112) | A | B | p |
+|---|---:|---:|---:|
+| Moderadamente Inversa (MI) | 0.0515 | 0.1140 | 0.02 |
+| Muy Inversa (VI) | 19.61 | 0.4910 | 2.00 |
+| **Extremadamente Inversa (EI)** | **28.2** | **0.1217** | **2.00** |
+ 
+*(Referencia cruzada — familias equivalentes en IEC 60255, ecuación $t=TMS\times\dfrac{k}{M^{\alpha}-1}$, sin término B):*
+ 
+| Curva (IEC 60255) | k | α |
+|---|---:|---:|
+| Normalmente Inversa (SI / IEC-SI) | 0.14 | 0.02 |
+| Muy Inversa (VI / IEC-VI) | 13.5 | 1.00 |
+| Extremadamente Inversa (EI / IEC-EI) | 80.0 | 2.00 |
+Con $Pickup_{51}=24.33\ A$ y evaluando en $I=LRA=138.19\ A$:
+
+$$M_{LRA}=\frac{138.19}{24.33}=5.68$$
+
+$$t(TD, M_{LRA}) = TD\times\left[\frac{28.2}{5.68^{2}-1}+0.1217\right] = TD\times 1.024\ s$$
+
+| TD | t a LRA (5.68×pickup) [s] |
+|---:|---:|
+| 0.5 | 0.51 |
+| 1 | 1.02 |
+| 2 | 2.05 |
+| 3 | 3.07 |
+| 4 | 4.10 |
+| 5 | 5.12 |
+| 6 | 6.14 |
+| 7 | 7.17 |
+| 8 | 8.19 |
+| 10 | 10.24 |
+
+**Criterio de selección final:**
+$$t_{arranque,real} + (1\ a\ 2\ s) \;<\; t(TD, LRA) \;<\; SST_{caliente}$$
+
+---
+
 ## Selección de Fusible de Respaldo
 
 $$I_{min,fusible} = FLA \times 1.75 = 19.46\ A \times 1.75 = 34.06\ A$$
@@ -254,6 +309,8 @@ Válida entre **2× y 40×** de I_FLA,trafo. *(Verificado contra literatura IEEE
 | **CT** | **75/5 A** (RTC=15), clase 5P40, I_ALF=3000A — dimensionado por la falla, no por la carga |
 | Fusible de respaldo | **FRN-R-35** (dual-element, Excepción 1 del 430.52) |
 | Pickup 51 | 24.33 A primario → **1.622 A secundario** (RTC=15) |
+| Curva 51 | Extremadamente Inversa (EI), IEEE C37.112 — coordina con perfil $I^2t$ del fusible y de C57.109 |
+| Dial de tiempo (TD) 51 | **Provisional TD ≈ 3** (t≈3.07 s a LRA) — pendiente de validar contra Safe Stall Time (frío/caliente) de ficha WEG, no disponible en este estudio |
 | Pickup 50 | 234.92 A primario → 15.66 A secundario |
 | **I_cc,3φ en el motor** | **2461.7 A**  |
 | **I_cc,SLG en el motor** | **2461.7 A**  |
