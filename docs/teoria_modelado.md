@@ -165,7 +165,7 @@ $$
 #### 3.1.3 Instrumentación Asociada
 
 *   `sensorPerdidasEstator()`: $P_{cu}=R_s(i_{as}^2+i_{bs}^2+i_{cs}^2)$ — pérdidas Joule instantáneas.
-*   `sensorCorrienteRotor()`: Corrientes rotóricas referidas al estator $(i'_{ar},i'_{br},i'_{cr})$ mediante transformación inversa.
+*   `sensorCorrienteRotor()`: Corrientes rotóricas referidas al estator $(i'\sb{ar},i'\sb{br},i'\sb{cr})$ mediante transformación inversa.
 *   `velocidad_sincronica`: $\omega_s = 4\pi f / P$.
 
 ### 3.2 Máquina de Inducción Trifásica
@@ -250,14 +250,14 @@ El modelo adopta una arquitectura de circuito equivalente de segundo orden con a
 
 1.  **Tensión de circuito abierto (OCV):** Función no lineal $V_{oc}=f(\text{SOC})$ tabulada mediante *lookup table* unidimensional con interpolación lineal y extrapolación constante. La tabla por defecto reproduce la característica de una celda NMC de 4,2 V.
 2.  **Polarización y difusión:** Dos redes $R_1$–$C_1$ y $R_2$–$C_2$ en serie con $R_0$ modelan las constantes de tiempo electroquímicas (segundos y minutos, respectivamente): $\dot{v}_{1}= (i - v_1/R_1)/C_1$.
-3.  **Balance térmico:** $C_{th}\dot{T}_{cell}= P_{loss} - (T_{cell}-T_{amb})/R_{th}$, con $P_{loss}=i^2R_0 + v_1^2/R_1 + v_2^2/R_2$.
+3.  **Balance térmico:** $C\sb{th}\dot{T}\sb{cell}= P\sb{loss} - (T\sb{cell}-T\sb{amb})/R\sb{th}$, con $P_{loss}=i^2R_0 + v_1^2/R_1 + v_2^2/R_2$.
 4.  **Gestión operativa:** Límites de corriente de carga/descarga dependientes de SOC y temperatura, con histéresis y degradación cíclica $\Delta Q = k_{deg} \cdot |i|dt$.
 
 El bloque `BateriaECM` expone seis salidas: tensión terminal, SOC, temperatura, potencia disipada y límites de corriente, habilitando el diseño de estrategias de gestión energética con restricciones reales.
 
 ### 5.3 Saturación Vectorial y SVPWM
 
-Cuando la referencia de tensión $(v_d^*, v_q^*)$ excede el hexágono de factibilidad del inversor, el bloque `SaturarVectorial` aplica una homotecia:
+Cuando la referencia de tensión $(v_d^\ast, v_q^\ast)$ excede el hexágono de factibilidad del inversor, el bloque `SaturarVectorial` aplica una homotecia:
 
 $$
 (v_d, v_q) = \frac{V_{\max}}{\sqrt{{v_d^*}^2+{v_q^*}^2}}(v_d^*, v_q^*), \quad \text{si } \| \mathbf{v}^*\| > V_{\max}

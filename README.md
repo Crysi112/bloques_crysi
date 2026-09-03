@@ -224,7 +224,7 @@ y = u_0\cdot u_1
 $n_{in}=2$, $n_{out}=1$, canales `["y"]`.
 
 #### SaturarVectorial
-Dado $\mathbf{v}^*=(v_d^*,v_q^*)$ y $V_{\max}=P_0$:
+Dado $\mathbf{v}^\ast=(v_d^\ast,v_q^\ast)$ y $V_{\max}=P_0$:
 
 ```math
 \mathbf{v}=\begin{cases} \mathbf{v}^* & \|\mathbf{v}^*\|\le V_{\max} \\ V_{\max}\mathbf{v}^*/\|\mathbf{v}^*\| & \text{en otro caso} \end{cases}
@@ -399,7 +399,7 @@ y=\begin{cases}u & t\lt t_f\\ valor & t\ge t_f\land modo=0\\ u+valor & modo=1\en
 
 ## 3. Máquinas Eléctricas
 
-Todas derivan de `Maquina` con $n_{out}=10$ (o específico), puertos `terminales` (3), `T_L`, y sensores: `sensor3V/3I`, `sensorVelocidad` ($w_m$), `sensorPosicion` ($\theta_{rm}$), `sensorPosicionElectrica` ($\theta_e$), `sensorPar` ($T_e$), `sensorCorrienteD/Q` ($i_{ds},i_{qs}$), `sensorPerdidasEstator` ($P_{cu,s}$), `sensorCorrienteRotor` ($i'_{ar},i'_{br},i'_{cr}$), `resumen()`.
+Todas derivan de `Maquina` con $n_{out}=10$ (o específico), puertos `terminales` (3), `T_L`, y sensores: `sensor3V/3I`, `sensorVelocidad` ($w_m$), `sensorPosicion` ($\theta_{rm}$), `sensorPosicionElectrica` ($\theta_e$), `sensorPar` ($T_e$), `sensorCorrienteD/Q` ($i_{ds},i_{qs}$), `sensorPerdidasEstator` ($P_{cu,s}$), `sensorCorrienteRotor` ($i'\sb{ar},i'\sb{br},i'\sb{cr}$), `resumen()`.
 
 ### 3.1 MaquinaImanesPermanentes (PMSM/PMAC) — `OP_MAQ_PMAC`
 
@@ -415,7 +415,7 @@ Parámetros: $R_s,L_d,L_q,\lambda_m,P,J,B_m$, $\theta_0$, `saturacion` opcional 
 
 ### 3.2 MaquinaInduccion — `OP_MAQ_INDUCCION`
 
-Estados 6: $[\lambda_{qs},\lambda_{ds},\lambda'_{qr},\lambda'_{dr},\omega_m,\theta_m]$, salidas 13 incluyendo $i'_{ar},i'_{br},i'_{cr}$.
+Estados 6: $[\lambda\sb{qs},\lambda\sb{ds},\lambda'\sb{qr},\lambda'\sb{dr},\omega\sb{m},\theta\sb{m}]$, salidas 13 incluyendo $i'\sb{ar},i'\sb{br},i'\sb{cr}$.
 
 Modelo $\alpha\beta$ estacionario (Krause):
 
@@ -603,7 +603,7 @@ Subclase de `dict` con `t` (vector tiempo) y matrices por clave. Helpers:
 
 Bloque `SubredMNA` (`mna.py`) encapsula subredes eléctricas no causales. Primitivas: `Nodo`, `Resistor(R)`, `Capacitor(C)`, `Inductor(L)`, `FuenteTension`, `FuenteCorriente`, `Interruptor(R_{on},R_{off},control)`, `DiodoIdeal(R_{on},R_{off},V_f)`, `VCVS`, `VCCS`, `MutualInductor`.
 
-Estampación Dommel: $G\mathbf{x}+C\dot{\mathbf{x}}=\mathbf{b}$, con $C_{eq}=C/h$ (Euler hacia atrás, método fijado por el núcleo). Sistema $A\mathbf{x}_{k+1}=\mathbf{b}_{eq}$ resuelto por LU densa $128\times128$ con pivoteo parcial. Diodos: iteración de complementariedad $v_d\ge V_f \perp i_d\ge0$ con $G_{on}=1/R_{on}$. Exposición al exterior vía `n_out` tensiones diferenciales e corrientes de rama.
+Estampación Dommel: $G\mathbf{x}+C\dot{\mathbf{x}}=\mathbf{b}$, con $C_{eq}=C/h$ (Euler hacia atrás, método fijado por el núcleo). Sistema $A\mathbf{x}\sb{k+1}=\mathbf{b}\sb{eq}$ resuelto por LU densa $128\times128$ con pivoteo parcial. Diodos: iteración de complementariedad $v_d\ge V_f \perp i_d\ge0$ con $G_{on}=1/R_{on}$. Exposición al exterior vía `n_out` tensiones diferenciales e corrientes de rama.
 
 ---
 
