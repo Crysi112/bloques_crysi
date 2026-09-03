@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bloques_crysi"
+version = "0.3.0"
+description = "Librería de bloques estilo Simulink con núcleo C para modelar sistemas y máquinas eléctricas"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Laboratorio CRYSI" }]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "scipy",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+red-pandapower = ["pandapower>=2.14"]
+red-opendss = ["opendssdirect.py>=0.9"]
+
+[project.urls]
+"Homepage" = "https://github.com/Crysi112/bloques_crysi"
+"Bug Reports" = "https://github.com/Crysi112/bloques_crysi/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"bloques_crysi" = ["core/*.c", "core/*.h", "core/*.dll"]
