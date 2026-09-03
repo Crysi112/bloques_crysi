@@ -22,7 +22,7 @@ graph LR
 | Tensión secundaria | **220/127 V** (13,200–220/127 V, dato de placa del transformador) |
 | Impedancia del transformador | 4.5% (dentro del rango típico 4–5.5%, NMX-J-205) |
 | X/R asumido (transformador) | 5 |
-| **Conductor** | **8 AWG** — R = 2.56 Ω/km, X = 0.171 Ω/km (NOM-001-SEDE-2012, Tabla 9, conducto PVC, cobre sin recubrimiento, 75 °C) — **verificado contra Tabla 9, renglón 8 AWG, columna PVC: coincide exactamente** |
+| **Conductor** | **8 AWG** — R = 2.56 Ω/km, X = 0.171 Ω/km (NOM-001-SEDE-2012, Tabla 9, conducto PVC, cobre sin recubrimiento, 75 °C)  |
 | **Motor** | **WEG W22, modelo 00718ET3E213T-W22, 7.5 HP (5.5 kW), NEMA, TRIFÁSICO** |
 | Tensión / polos | 208-230/460 V, 3Ø, 4 polos, 1765 RPM, 60 Hz, marco 213/5T |
 | Corriente nominal de placa | 208 V: 20.5 A · 230 V: 18.6 A · 460 V: 9.29 A *(ver nota de verificación arriba)* |
@@ -50,7 +50,7 @@ NEC/NOM **430.22** exige que la ampacidad del conductor del circuito derivado a 
 
 $$I_{ampacidad,min} = FLA \times 1.25 = 19.46\ A \times 1.25 = \mathbf{24.33\ A}$$
 
-Ampacidad de referencia — NOM-001-SEDE-2012, Tabla 310-15(b)(16), THHN/THWN-2 a 75 °C, 3 conductores portadores de corriente en conducto, 30 °C ambiente. El conductor 8 AWG tiene ampacidad de **50 A**, muy por encima del mínimo requerido (50/24.33 = **205.5%** del mínimo) — el conductor existente queda con amplio margen frente al motor trifásico real (menor FLA que el valor monofásico usado por error anteriormente).
+Ampacidad de referencia — NOM-001-SEDE-2012, Tabla 310-15(b)(16), THHN/THWN-2 a 75 °C, 3 conductores portadores de corriente en conducto, 30 °C ambiente. El conductor 8 AWG tiene ampacidad de **50 A**.
 
 ---
 
@@ -235,18 +235,110 @@ $$I_{CT,min\ por\ carga} = FLA \times 1.25 = 19.46\ A\times1.25=\mathbf{24.33\ A
 
 Este valor por sí solo sugeriría un CT pequeño (p. ej. 25/5 A o 30/5 A). **Sin embargo**, el CT debe además evitar saturarse durante la falla real del sistema (2461.7 A). Para una clase de precisión 5P40 (factor límite de precisión = 40×), el CT debe cumplir:
 
-$$I_{CT,primario} \geq \frac{I_{cc,3\phi}}{40} = \frac{2461.7\ A}{40} = 61.5\ A$$
+$$I_{CT,primario} \geq \frac{I_{cc,3\phi}}{40} = \frac{2461.5697\ A}{40} = 61.5\ A$$
 
-El siguiente tamaño estándar por encima de 61.5 A es **75 A** — por eso el CT seleccionado es **75/5 A** (RTC=15), clase **5P40**.
+El siguiente tamaño estándar por encima de 61.5 A es **75 A** — por eso la relación seleccionada es **75/5 A** (RTC=15). La clase final es **5P20/15 VA (MBS SASK 31.6)**, cuyo ALF real (≈ 49 con el burden de este estudio) supera el 40 nominal del prediseño — ver justificación completa en la sección de burden.
 
 **Nota de diseño:** esto es un compromiso típico entre precisión de medición en carga normal y precisión de protección durante fallas. Con el motor trifásico real (FLA=19.46 A), la corriente en el secundario a plena carga es de solo 19.46/15 = **1.30 A** (26% del secundario nominal de 5 A) — más baja resolución para medición de carga normal, pero necesaria para que el CT no sature durante una falla real. Si la prioridad fuera solo medición de carga, un CT 25/5 o 30/5 sería más adecuado, pero no protegería correctamente la exactitud del relevador durante la falla.
 
-Como I_cc,3φ = 2461.7 A < 3000 A (I_ALF = 40 × 75 A = 3000 A), el CT se mantiene dentro de su clase de precisión (±5%) hasta la corriente de falla real.
+Con ALF real ≈ 49, el límite lineal del CT es 49 × 75 A ≈ 3650 A > 2461.7 A, por lo que se mantiene dentro de su clase de precisión (±5%) hasta la corriente de falla real.
 
 **Pickup 51 en secundario:** 24.33 A / 15 (RTC) = **1.622 A secundario**
 **Pickup 50 en secundario:** 234.92 A / 15 (RTC) = **15.66 A secundario**
 
 ---
+
+### Circuito secundario del CT 
+
+> **Caso :** distancia CT ↔ relé SEL-710 de **20 m**, conductor de cobre **10 AWG (5.26 mm²)**, resistividad a 75 °C $\rho = 0.0214\ \Omega\cdot mm²/m$, ida y vuelta (factor ×2). Este circuito secundario es independiente del cable de potencia de 8 AWG / 19.6 m.
+
+**Tabla de sensibilidad — resistencia del cable ida y vuelta por longitud y calibre:**
+
+| Longitud CT→relé | 14 AWG (2.08 mm²) | 12 AWG (3.31 mm²) | 10 AWG (5.26 mm²) |
+|---:|---:|---:|---:|
+| 10 m | 0.206 Ω | 0.129 Ω | 0.081 Ω |
+| 20 m | 0.412 Ω | 0.259 Ω | 0.163 Ω |
+| 30 m | 0.617 Ω | 0.388 Ω | 0.244 Ω |
+| 50 m | 1.029 Ω | 0.647 Ω | 0.407 Ω |
+
+*(Verificado con $R = 2L\rho/A$.)*
+
+**Cargas nominales típicas de placa (IEC 61869-2) y su impedancia equivalente a 5 A ($Z = VA/25$):**
+
+| Burden nominal de placa | Impedancia equivalente |
+|---:|---:|
+| 2.5 VA | 0.10 Ω |
+| 5 VA | 0.20 Ω |
+| 10 VA | 0.40 Ω |
+| 15 VA | 0.60 Ω |
+| 30 VA | 1.20 Ω |
+
+**Burden total del caso adoptado (20 m, 10 AWG):**
+
+$$R_{cable} = \frac{2 \times 20\ m \times 0.0214}{5.26} = 0.163\ \Omega$$
+
+$$S_{cable} = (5\ A)^2 \times 0.163\ \Omega = 4.07\ VA$$
+
+Relé SEL-710, modelo 5 A (dato de ficha, manual de instrucciones): burden $<0.1\ VA$ por fase, es decir $Z_{rele} = 0.004\ \Omega$. Reserva por contactos y terminales (previsión explícita): $0.05\ \Omega$, es decir $1.25\ VA$.
+
+$$S_{total} = 4.07\ VA + 0.10\ VA + 1.25\ VA = 5.42\ VA \quad (36.1\%\ de\ 15\ VA)$$
+
+### TC comercial seleccionado
+
+| Concepto | Especificación |
+|---|---|
+| Fabricante / serie | **MBS AG (Alemania), SASK 31.6** — TC toroidal de BT para protección |
+| Relación | 75/5 A — RTC = 15 |
+| Clase / burden | 5P20, 15 VA |
+| Tensión máx. / ensayo | $U_m = 0.72\ kV$, ensayo de aislamiento 3 kV, 50 Hz, 1 min |
+| Corriente térmica continua | $I_{cth} = 1.0\,I_{pr} = 75\ A$ |
+| Corriente térmica de corta duración | $I_{th} = 60\,I_{pr} = 4500\ A/1\ s$ |
+| Ventana | conductor redondo 23 mm (el alimentador 8 AWG pasa con holgura; en montaje real verificar además diámetro exterior con aislamiento, terminales y canalización) |
+| Dimensiones | 95 × 116 × 74 mm |
+| Norma | DIN EN 61869-1/2 |
+| Aplicación | Protección |
+| Fabricante | MBS AG – SASK 31.6 ([ficha oficial](https://mbs-ag.com/en/produkt/sask-31-6/)) |
+
+**Por qué 5P20 y no 5P40:** la serie SASK de BT llega hasta 5P30; no existe 5P40/75 A en BT de este fabricante y no hace falta. Con burden real liviano (5.42 VA frente a 15 VA nominales), el ALF real del 5P20 supera el 40 nominal del prediseño. A modo de contraste: con burden nominal de 10 VA el ALF real quedaría en 33.7, apenas 3% sobre el requerido 32.82 y exigiendo $R_{ct}$ menor o igual a $0.069\ \Omega$, margen inaceptable sin dato de ficha. Eso es lo que justifica subir a 15 VA y no quedarse en 10 VA.
+### Qué significa 5P20
+
+Con el TC $75/5\ A$, $5P20$, $15\ VA$, el 5P20 dice, de forma simplificada, que el factor límite de precisión es $ALF = 20$. La corriente secundaria correspondiente al límite de exactitud es:
+
+$$I_{ALF} = 20 \times 5\ A = 100\ A$$
+
+y en el primario:
+
+$$I_{ALF} = 20 \times 75\ A = 1500\ A$$
+
+Es decir, la placa $75/5\ A$, $5P20$ no solo dice "este TC transforma 75 A a 5 A", sino que informa su comportamiento frente a corrientes elevadas de falla. Y eso conecta directamente con este estudio: la falla calculada y verificada es $2461.7\ A$, es decir $2461.7/75 = 32.82$ veces la nominal por encima del 20 nominal. 
+
+Los 15 VA son el **burden nominal del secundario**, no la resistencia óhmica interna del devanado. Lo que sí puede calcularse del burden nominal es su impedancia equivalente a corriente secundaria nominal ($I_s = 5\ A$):
+
+$$S = I^2 Z \quad\Rightarrow\quad Z_{eq} = \frac{15}{5^2} = 0.6\ \Omega$$
+
+Llamarlo así:
+
+$$Z_{eq} = 0.6\ \Omega \quad\text{(impedancia equivalente al burden nominal)}$$
+
+y **no** resistencia interna del TC. La resistencia interna del devanado ($R_{ct}$) es otro dato sale de la ficha del lote y entra al cálculo del ALF real como sigue.
+
+### ALF real 
+
+Múltiplo requerido por la falla del sistema:
+
+$$n_{req} = \frac{2461.7\ A}{75\ A} = 32.82$$
+
+$$ALF_{real} = ALF_{nom}\times\frac{S_n + S_{int}}{S + S_{int}},\quad S_{int} = (5\ A)^2 R_{ct}$$
+
+**De dónde sale $R_{ct}$:** la ficha web del SASK 31.6 no publica la resistencia del devanado por variante (dato que sí aparece en el protocolo de ensayos de rutina del lote, IEC 61869). En su lugar se usan dos argumentos independientes. Primero, estimación física de orden de magnitud: el secundario de un 75/5 A toroidal tiene $N_2 = 15$ espiras; con espira media de ≈ 0.3 m en cobre de ≈ 2 mm²:
+
+$$R_{ct} \approx \frac{15 \times 0.3\ m \times 0.0214}{2.0} \approx 0.05\ \Omega \quad (S_{int} = 1.25\ VA)$$
+
+$$ALF_{real} = 20\times\frac{15 + 1.25}{5.42 + 1.25} = 48.7 \geq 32.82 $$
+
+Chequeo cruzado de tensión secundaria (criterio tipo clase C, informativo): con $R_{ct} \approx 0.05\ \Omega$, $V_s = 164.1\ A \times 0.267\ \Omega \approx 44\ V$. Relación X/R en bornes del motor ≈ 0.15, por lo que la componente de DC del cortocircuito es despreciable y basta el criterio de régimen permanente (sin sobredimensionar por transitorio).
+
+
 
 ## Curva de Daño del Transformador (ANSI/IEEE C57.109)
 
@@ -303,10 +395,10 @@ Válida entre **2× y 40×** de I_FLA,trafo. *(Verificado contra literatura IEEE
 |---|---|
 | Sistema | 220Y/127 V |
 | Motor | WEG W22 7.5HP, **00718ET3E213T-W22 (trifásico)**, FLA=19.46A (a 220V)  |
-| **Conductor** | **8 AWG**, R=2.56 Ω/km, X=0.171 Ω/km, ≈19.6 m — ampacidad 50A @75°C ✓ (205.5% ≥ requerido) |
+| **Conductor** | **8 AWG**, R=2.56 Ω/km, X=0.171 Ω/km, ≈19.6 m — ampacidad 50A @75°C (205.5% del requerido) |
 | **Caída de tensión a FLA** | **0.65%** — cumple 3% (derivado) |
 | **Caída de tensión en arranque** | **4.64%** |
-| **CT** | **75/5 A** (RTC=15), clase 5P40, I_ALF=3000A — dimensionado por la falla, no por la carga |
+| **CT** | **MBS SASK 31.6, 75/5 A** (RTC=15), **5P20, 15 VA**, Ith 60×In — ALF real ≈ 49 (límite ≈ 3650 A) > falla 2461.7 A |
 | Fusible de respaldo | **FRN-R-35** (dual-element, Excepción 1 del 430.52) |
 | Pickup 51 | 24.33 A primario → **1.622 A secundario** (RTC=15) |
 | Curva 51 | Extremadamente Inversa (EI), IEEE C37.112 — coordina con perfil $I^2t$ del fusible y de C57.109 |

@@ -122,17 +122,67 @@ I_pu_check = Icc3_motor / I_fla_trafo
 t_check = K_trafo / I_pu_check**2
 extrapola = I_pu_check < 2.0
 
-area_mm2 = 8.37
-K_cable = 115.0
-constante_dano_cable = (K_cable * area_mm2) ** 2
+area_mm2 = 8.37   
+K_cable = 115.0   
+constante_daño_cable = (K_cable * area_mm2)**2
 i_cable = np.linspace(pickup_51, Icc3_motor * 2.0, 500)
-t_cable = constante_dano_cable / (i_cable**2)
+t_cable = constante_daño_cable / (i_cable**2)
+
+ct_prim, ct_sec = 75.0, 5.0
+rtc = ct_prim / ct_sec
+ct_clase_alf, ct_sn_va = 20.0, 15.0
+
+rho_cu75, area_ct_mm2, long_ct_m = 0.0214, 5.26, 20.0
+R_cable_ct = 2.0 * long_ct_m * rho_cu75 / area_ct_mm2
+S_cable_ct = ct_sec**2 * R_cable_ct
+S_rele_ct = 0.10            
+R_contactos = 0.05          
+S_contactos = ct_sec**2 * R_contactos
+S_total_ct = S_cable_ct + S_rele_ct + S_contactos
+
+n_req = Icc3_motor / ct_prim
+Rct_est = 0.05              
+S_int_est = ct_sec**2 * Rct_est
+alf_real = ct_clase_alf * (ct_sn_va + S_int_est) / (S_total_ct + S_int_est)
+Rct_max = ((ct_clase_alf * ct_sn_va - n_req * S_total_ct) / (n_req - ct_clase_alf)) / ct_sec**2
+Vs_req = (Icc3_motor / rtc) * (R_cable_ct + 0.004 + R_contactos + Rct_est)
+
+fla_sec = fla / rtc
+pk51_sec = pickup_51 / rtc
+pk50_sec = pickup_50 / rtc
+pk50_xfla = pickup_50 / fla
+lra_sec = lra / rtc
+icc_sec = Icc3_motor / rtc
+
+i_alf_real = alf_real * ct_prim          
+i_ad_sel = 110.0 * rtc                   
+i_ct_therm = np.linspace(max(i_alf_real, pickup_50), Icc3_motor * 2.0, 300)
+t_ct_therm = (4500.0**2 * 1.0) / i_ct_therm**2   
+
+checks_ct = [
+    ("51P 1.622A en [0.50, 10.00]A sec.", 0.50 <= pk51_sec <= 10.00),
+    ("50P 12.07xFLA en [0.10, 20.00]xFLA", 0.10 <= pk50_xfla <= 20.00),
+    ("TD=3 en [0.50, 15.00] (US)", 0.50 <= td_51 <= 15.00),
+    ("LRA sec 9.21A < 15A continuo", lra_sec < 15.0),
+    ("Icc sec 164.1A < 500A/1s", icc_sec < 500.0),
+    ("Ith CT 4500A > Icc 2461.7A", 60.0 * ct_prim >= Icc3_motor),
+    ("ALF real 48.7 >= requerido 32.82", alf_real >= n_req),
+    ("Burden 5.42VA < 15VA nominal", S_total_ct < ct_sn_va),
+]
 
 print(f"FLA: {fla} A | LRA: {lra} A | Fusible: {fuse_std} A")
 print(f"Cable: 8 AWG (Seccion={area_mm2} mm2, Constante K={K_cable})")
 print(f"Pickup 51: {pickup_51:.2f} A | Pickup 50: {pickup_50:.1f} A")
 print(f"Cortocircuito Trifasico (Motor, manual): {Icc3_motor:.1f} A")
 print(f"Cortocircuito Monofasico (Motor, manual): {Icc1_motor:.1f} A")
+print(f"CT MBS SASK 31.6 75/5A 5P20 15VA (RTC={rtc:.0f})")
+print(f"Burden: cable {S_cable_ct:.2f} + rele {S_rele_ct:.2f} + contactos {S_contactos:.2f} = {S_total_ct:.2f} VA ({S_total_ct/ct_sn_va*100:.1f}% de 15VA)")
+print(f"ALF requerido: {n_req:.2f} | ALF real (Rct={Rct_est} ohm): {alf_real:.1f} | Rct max admisible: {Rct_max:.3f} ohm")
+print(f"Vs requerida: {Vs_req:.1f} V | Secundario: FLA {fla_sec:.3f}A, 51pk {pk51_sec:.3f}A, 50pk {pk50_sec:.2f}A ({pk50_xfla:.2f}xFLA), LRA {lra_sec:.2f}A, Icc {icc_sec:.1f}A")
+for nombre, ok in checks_ct:
+    print(f"[{'OK' if ok else 'FALLA'}] {nombre}")
+if not all(ok for _, ok in checks_ct):
+    raise SystemExit("Verificacion CT/SEL-710 fallida: revisar ajustes.")
 
 plt.figure(figsize=(10, 7))
 
@@ -143,9 +193,13 @@ plt.hlines(y=0.01, xmin=pickup_50, xmax=Icc3_motor * 1.5, color='red', linestyle
 plt.loglog(i_fuse, t_fuse, label=f'Fusible ({fuse_std:.0f} A)', color='green', linestyle='-.', linewidth=2)
 
 plt.loglog(i_trafo_valido, t_trafo_valido,
-           label='Curva Dano Trafo (Cat. I, C57.109, 2x-40x)', color='darkred', linestyle='-', linewidth=2)
+           label='Curva Daño Trafo (Cat. I, C57.109, 2x-40x)', color='darkred', linestyle='-', linewidth=2)
 
-plt.loglog(i_cable, t_cable, label='Dano Conductor (8 AWG, Cu/PVC)', color='magenta', linestyle=':', linewidth=2.5)
+plt.loglog(i_cable, t_cable, label='Daño Conductor (8 AWG, Cu/PVC)', color='magenta', linestyle=':', linewidth=2.5)
+
+plt.loglog(i_ct_therm, t_ct_therm, label='Daño Térmico CT (Ith 4500A/1s)', color='teal', linestyle=':', linewidth=1.5)
+plt.axvline(x=i_alf_real, color='teal', linestyle='--', linewidth=1.5, label=f'Límite lineal CT (ALF real {alf_real:.1f}, {i_alf_real:.0f} A)')
+plt.axvline(x=i_ad_sel, color='gray', linestyle=':', linewidth=1.5, label=f'Saturación A/D SEL-710 ({i_ad_sel:.0f} A)')
 
 plt.axvline(x=pickup_51, color='orange', linestyle=':', label=f'Pickup 51 ({pickup_51:.1f} A)')
 plt.axvline(x=lra, color='purple', linestyle='--', label=f'LRA Arranque ({lra:.1f} A)')
