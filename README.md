@@ -140,7 +140,7 @@ Parámetro: `valor`.
 #### FuenteEscalon
 
 ```math
-y(t)=\left\{\begin{array}{ll} P_2 & t<P_1 \\ P_0 & t\ge P_1 \end{array}\right.
+y(t)=\begin{cases} P_2 & t<P_1 \\ P_0 & t\ge P_1 \end{cases}
 ```
 
 Parámetros: `valor_final`, `t_paso`, `valor_inicial`.
@@ -148,7 +148,7 @@ Parámetros: `valor_final`, `t_paso`, `valor_inicial`.
 #### FuenteRampa
 
 ```math
-y(t)=\left\{\begin{array}{ll} P_2 & t<P_1 \\ P_2+P_0(t-P_1) & t\ge P_1 \end{array}\right.
+y(t)=\begin{cases} P_2 & t<P_1 \\ P_2+P_0(t-P_1) & t\ge P_1 \end{cases}
 ```
 
 Parámetros: `pendiente`, `t_inicio`, `offset`.
@@ -172,7 +172,7 @@ $n_{out}=3$.
 #### PulsoRectangular
 
 ```math
-y(t)=P_4+\left\{\begin{array}{ll} P_0 & \mathrm{mod}(t+P_3,P_1)<P_2P_1 \\ 0 & \text{en otro caso} \end{array}\right.
+y(t)=P_4+\begin{cases} P_0 & \mathrm{mod}(t+P_3,P_1)<P_2P_1 \\ 0 & \text{en otro caso} \end{cases}
 ```
 
 Parámetros: `amplitud`, `periodo`, `duty`, `fase`, `offset`. Validación: $periodo>0$, $0<duty\le1$.
@@ -227,7 +227,7 @@ $n_{in}=2$, $n_{out}=1$, canales `["y"]`.
 Dado $\mathbf{v}^*=(v_d^*,v_q^*)$ y $V_{\max}=P_0$:
 
 ```math
-\mathbf{v}=\left\{\begin{array}{ll} \mathbf{v}^* & \|\mathbf{v}^*\|\le V_{\max} \\ V_{\max}\mathbf{v}^*/\|\mathbf{v}^*\| & \text{en otro caso} \end{array}\right.
+\mathbf{v}=\begin{cases} \mathbf{v}^* & \|\mathbf{v}^*\|\le V_{\max} \\ V_{\max}\mathbf{v}^*/\|\mathbf{v}^*\| & \text{en otro caso} \end{cases}
 ```
 
 Preserva fase, escala magnitud. Fundamental en FOC para respetar hexágono SVPWM ($V_{\max}=V_{dc}/\sqrt3$).
@@ -308,7 +308,7 @@ x_0\gets u_{sig}
 Autómata finito determinista con $n_{estados}$, $n_{entradas}$ y tabla de transiciones $(desde,hacia,idx_{señal},cond,umbral)$, cond $\in\lbrace<,\le,>,\ge,=,\neq\rbrace$.
 
 ```math
-s_{k+1}=\left\{\begin{array}{ll} hacia & s_k=desde \land (u_{idx}\,cond\,umbral)\\ s_k & \text{en otro caso} \end{array}\right.
+s_{k+1}=\begin{cases} hacia & s_k=desde \land (u_{idx}\,cond\,umbral)\\ s_k & \text{en otro caso} \end{cases}
 ```
 
 #### Filtros como FuncionTransferencia
@@ -333,7 +333,7 @@ s_{k+1}=\left\{\begin{array}{ll} hacia & s_k=desde \land (u_{idx}\,cond\,umbral)
 Estados: $x_0=\int e$, $x_1=e_{prev}$, $x_2=u_{d,filt}$.
 
 ```math
-\begin{aligned} u_d &= \frac{K_d(e_k-x_1)+T_f x_2}{T_f+h}\\ u_{raw}&=K_pe_k+K_ix_0+u_d\\ u&=\mathrm{clip}(u_{raw},u_{\min},u_{\max})\\ \dot x_0&= \left\{\begin{array}{ll}0 & (u_{raw}>u_{\max}\land e_k>0)\lor(u_{raw}<u_{\min}\land e_k<0)\\ e_k & \text{en otro caso}\end{array}\right. \end{aligned}
+\begin{aligned} u_d &= \frac{K_d(e_k-x_1)+T_f x_2}{T_f+h}\\ u_{raw}&=K_pe_k+K_ix_0+u_d\\ u&=\mathrm{clip}(u_{raw},u_{\min},u_{\max})\\ \dot x_0&= \begin{cases}0 & (u_{raw}>u_{\max}\land e_k>0)\lor(u_{raw}<u_{\min}\land e_k<0)\\ e_k & \text{en otro caso}\end{cases} \end{aligned}
 ```
 
 Parámetros: $K_p,K_i,K_d,T_f,u_{\min},u_{\max}$.
@@ -382,7 +382,7 @@ Estados $\theta_1,\theta_2$:
 #### Embrague
 
 ```math
-T_{out}=\left\{\begin{array}{ll} \min(T_{in},T_{\max}) & u_{ctrl}>umbral\\ 0 & \text{en otro caso} \end{array}\right.
+T_{out}=\begin{cases} \min(T_{in},T_{\max}) & u_{ctrl}>umbral\\ 0 & \text{en otro caso} \end{cases}
 ```
 
 ### 2.4 Bloques de Fallas
@@ -390,7 +390,7 @@ T_{out}=\left\{\begin{array}{ll} \min(T_{in},T_{\max}) & u_{ctrl}>umbral\\ 0 & \
 **FalloProgramado:**
 
 ```math
-y=\left\{\begin{array}{ll}u & t<t_f\\ valor & t\ge t_f\land modo=0\\ u+valor & modo=1\end{array}\right.
+y=\begin{cases}u & t<t_f\\ valor & t\ge t_f\land modo=0\\ u+valor & modo=1\end{cases}
 ```
 
 **FalloEvento:** Idem pero disparado por $u_{trig}>umbral$.
