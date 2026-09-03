@@ -157,7 +157,7 @@ $$ y(t)=y_k+\frac{y_{k+1}-y_k}{t_{k+1}-t_k}(t-t_k),\quad t_k\le t<t_{k+1} $$
 Parámetro: `archivo`, `columna_t`, `columna_y`, `interpolar`.
 
 #### FuenteTabla
-Idéntica a `FuenteCSV` pero con puntos en memoria `[(t_0,y_0),\dots,(t_{n-1},y_{n-1})]` estrictamente crecientes en $t$.
+Idéntica a `FuenteCSV` pero con puntos en memoria $[(t_0,y_0),\dots,(t_{n-1},y_{n-1})]$ estrictamente crecientes en $t$.
 
 ### 2.2 Operadores Estáticos Escalares y Vectoriales
 
@@ -216,9 +216,9 @@ Parámetros almacenan $n_x$, $x_i$, $y_i$, $z_{ij\dots}$.
 
 #### Logico y Relacional
 
-**Logico:** $y=\text{OP}(u_0,\dots,u_{n-1}>P_1)$, OP $\in\{$AND,OR,NAND,NOR,XOR,XNOR,NOT$\}$, $n_{in}$ configurable, umbral $P_1$.
+**Logico:** $y=\text{OP}(u_0,\dots,u_{n-1}>P_1)$, OP $\in\{\text{AND},\text{OR},\text{NAND},\text{NOR},\text{XOR},\text{XNOR},\text{NOT}\}$, $n_{in}$ configurable, umbral $P_1$.
 
-**Relacional:** $y=1$ si $u_0 \,\text{OP}\, u_1 \pm tol$, OP $\in\{==,!=,<,<=,>,>=\}$.
+**Relacional:** $y=1$ si $u_0 \,\text{OP}\, u_1 \pm tol$, OP $\in\{=,\neq,<,\le,>,\ge\}$.
 
 #### LimitadorRapidez (Rate Limiter)
 Estado $x$, $h=dt$:
@@ -230,7 +230,7 @@ Estados $x_0$ (valor retenido), $x_1$ (memoria de disparo). Si $u_{trig}>P_0$ y 
 $$ x_0\gets u_{sig} $$
 
 #### MaquinaEstados
-Autómata finito determinista con $n_{estados}$, $n_{entradas}$ y tabla de transiciones $(desde,hacia,idx_{señal},cond,umbral)$, cond $\in\{<,\le,>,>=,==,!=\}$.
+Autómata finito determinista con $n_{estados}$, $n_{entradas}$ y tabla de transiciones $(desde,hacia,idx_{señal},cond,umbral)$, cond $\in\{<,\le,>,\ge,=,\neq\}$.
 
 $$ s_{k+1}=\begin{cases} hacia & s_k=desde \land (u_{idx}\,cond\,umbral)\\ s_k & \text{en otro caso} \end{cases} $$
 
@@ -341,11 +341,17 @@ Sensores `sensorCorriente`, `sensorVelocidad`, `sensorPar`, `sensorEa` ($K_t\ome
 
 Evitan el lazo algebraico $V\to I$ de interconectar inductor e interruptor causalmente. Estados $[i_L,v_C]$, entradas $[V_{in},d]$, salidas $[v_{out},i_L]$.
 
-**Buck:** $$ L\dot i_L = dV_{in}-v_C,\quad C\dot v_C = i_L-v_C/R $$
+**Buck:**
 
-**Boost:** $$ L\dot i_L = V_{in}-(1-d)v_C,\quad C\dot v_C = (1-d)i_L-v_C/R $$
+$$ L\dot i_L = dV_{in}-v_C,\quad C\dot v_C = i_L-v_C/R $$
 
-**BuckBoost:** $$ L\dot i_L = dV_{in}-(1-d)v_C,\quad C\dot v_C = (1-d)i_L-v_C/R $$
+**Boost:**
+
+$$ L\dot i_L = V_{in}-(1-d)v_C,\quad C\dot v_C = (1-d)i_L-v_C/R $$
+
+**BuckBoost:**
+
+$$ L\dot i_L = dV_{in}-(1-d)v_C,\quad C\dot v_C = (1-d)i_L-v_C/R $$
 
 Parámetros $L,C,R$.
 
