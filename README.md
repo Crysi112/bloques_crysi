@@ -91,7 +91,7 @@ Más casos (FOC de PMSM, micro-red IEEE-13, HIL, MNA) en [`ejemplos/`](#12-estru
 
 ### 1.1 Principio Causal
 
-Todo sistema se describe como grafo dirigido de bloques. Cada bloque implementa una relación estática $\mathbf{y}=\mathbf{g}(\mathbf{u})$ o dinámica $\dot{\mathbf{x}}=\mathbf{f}(\mathbf{x},\mathbf{u}),\ \mathbf{y}=\mathbf{h}(\mathbf{x},\mathbf{u})$. Las señales fluyen por puertos tipificados (`Puerto`), con inferencia automática de índices de señal (`in_idx`, `out_idx`) y detección de lazos algebraicos.
+Todo sistema se describe como grafo dirigido de bloques. Cada bloque implementa una relación estática $\mathbf{y}=\mathbf{g}(\mathbf{u})$ o dinámica $\dot{\mathbf{x}}=\mathbf{f}(\mathbf{x},\mathbf{u}),\quad\mathbf{y}=\mathbf{h}(\mathbf{x},\mathbf{u})$. Las señales fluyen por puertos tipificados (`Puerto`), con inferencia automática de índices de señal (`in_idx`, `out_idx`) y detección de lazos algebraicos.
 
 ### 1.2 Integración Temporal
 
@@ -107,9 +107,11 @@ Selección vía `Modelo(dt, metodo="euler"|"rk4")`.
 
 Interconexiones cíclicas entre bloques estáticos generan $\mathbf{y}=\mathbf{g}(\mathbf{y})$. Resolución por Gauss-Seidel con relajación SOR:
 
-$$ \mathbf{y}^{(k+1)}=\mathbf{y}^{(k)}+\omega(\mathbf{g}(\mathbf{y}^{(k)})-\mathbf{y}^{(k)}),\quad \|\mathbf{y}^{(k+1)}-\mathbf{y}^{(k)}\|_\infty<\varepsilon $$
+```math
+\mathbf{y}^{(k+1)}=\mathbf{y}^{(k)}+\omega(\mathbf{g}(\mathbf{y}^{(k)})-\mathbf{y}^{(k)}),\quad \|\mathbf{y}^{(k+1)}-\mathbf{y}^{(k)}\|_\infty<\varepsilon
+```
 
-con $\omega=w_{opt}$, $\varepsilon=tol$, $k_{\max}=max\_iter$. No convergencia → `RuntimeError` con diagnóstico.
+con $\omega=w_{opt}$, $\varepsilon=tol$, $k_{\max}$ = `max_iter`. No convergencia → `RuntimeError` con diagnóstico.
 
 ### 1.4 Estratos
 
@@ -128,32 +130,60 @@ Todos los bloques derivan de `Bloque(nombre, Ts)` con atributos `op`, `n_in`, `n
 ### 2.1 Fuentes de Excitación
 
 #### FuenteConstante
-$$ y(t)=P_0 $$
+
+```math
+y(t)=P_0
+```
+
 Parámetro: `valor`.
 
 #### FuenteEscalon
-$$ y(t)=\begin{cases} P_2 & t<P_1 \\ P_0 & t\ge P_1 \end{cases} $$
+
+```math
+y(t)=\begin{cases} P_2 & t<P_1 \\ P_0 & t\ge P_1 \end{cases}
+```
+
 Parámetros: `valor_final`, `t_paso`, `valor_inicial`.
 
 #### FuenteRampa
-$$ y(t)=\begin{cases} P_2 & t<P_1 \\ P_2+P_0(t-P_1) & t\ge P_1 \end{cases} $$
+
+```math
+y(t)=\begin{cases} P_2 & t<P_1 \\ P_2+P_0(t-P_1) & t\ge P_1 \end{cases}
+```
+
 Parámetros: `pendiente`, `t_inicio`, `offset`.
 
 #### FuenteSeno
-$$ y(t)=P_0\sin(2\pi P_1 t+P_2)+P_3 $$
+
+```math
+y(t)=P_0\sin(2\pi P_1 t+P_2)+P_3
+```
+
 Parámetros: `amplitud`, `frecuencia`, `fase`, `offset`.
 
 #### FuenteTrifasica
-$$ \begin{aligned} y_0&=P_0\sin(2\pi P_1 t+P_2)\\ y_1&=P_0\sin(2\pi P_1 t+P_2-2\pi/3)\\ y_2&=P_0\sin(2\pi P_1 t+P_2-4\pi/3) \end{aligned} $$
+
+```math
+\begin{aligned} y_0&=P_0\sin(2\pi P_1 t+P_2)\\ y_1&=P_0\sin(2\pi P_1 t+P_2-2\pi/3)\\ y_2&=P_0\sin(2\pi P_1 t+P_2-4\pi/3) \end{aligned}
+```
+
 $n_{out}=3$.
 
 #### PulsoRectangular
-$$ y(t)=P_4+\begin{cases} P_0 & \operatorname{mod}(t+P_3,P_1)<P_2P_1 \\ 0 & \text{en otro caso} \end{cases} $$
+
+```math
+y(t)=P_4+\begin{cases} P_0 & \operatorname{mod}(t+P_3,P_1)<P_2P_1 \\ 0 & \text{en otro caso} \end{cases}
+```
+
 Parámetros: `amplitud`, `periodo`, `duty`, `fase`, `offset`. Validación: $periodo>0$, $0<duty\le1$.
 
 #### FuenteCSV
 Interpolación lineal (o retención) sobre tabla $(t_i,y_i)$ leída de archivo CSV con delimitador autodetectado `,`/`;` y codificación `utf-8-sig`:
-$$ y(t)=y_k+\frac{y_{k+1}-y_k}{t_{k+1}-t_k}(t-t_k),\quad t_k\le t<t_{k+1} $$
+
+```math
+y(t)=y_k+\frac{y_{k+1}-y_k}{t_{k+1}-t_k}(t-t_k),\quad t_k\le t<t_{k+1}
+```
+
 Parámetro: `archivo`, `columna_t`, `columna_y`, `interpolar`.
 
 #### FuenteTabla
@@ -162,51 +192,89 @@ Idéntica a `FuenteCSV` pero con puntos en memoria $[(t_0,y_0),\dots,(t_{n-1},y_
 ### 2.2 Operadores Estáticos Escalares y Vectoriales
 
 #### Ganancia
-$$ y = P_0\cdot u $$
+
+```math
+y = P_0\cdot u
+```
+
 $n_{in}=1$.
 
 #### Suma
-$$ y = \sum_{i=0}^{n-1} P_i\,u_i $$
+
+```math
+y = \sum_{i=0}^{n-1} P_i\,u_i
+```
+
 $n_{in}=|signos|$, $P_i$ son los signos/pesos. Puertos: `entrada` vectorial.
 
 #### Saturar
-$$ y = \min(\max(u,P_0),P_1) $$
+
+```math
+y = \min(\max(u,P_0),P_1)
+```
+
 Parámetros: `u_min`, `u_max`.
 
 #### Multiplicador
-$$ y = u_0\cdot u_1 $$
+
+```math
+y = u_0\cdot u_1
+```
+
 $n_{in}=2$, $n_{out}=1$, canales `["y"]`.
 
 #### SaturarVectorial
 Dado $\mathbf{v}^*=(v_d^*,v_q^*)$ y $V_{\max}=P_0$:
-$$ \mathbf{v}=\begin{cases} \mathbf{v}^* & \|\mathbf{v}^*\|\le V_{\max} \\ V_{\max}\mathbf{v}^*/\|\mathbf{v}^*\| & \text{en otro caso} \end{cases} $$
+
+```math
+\mathbf{v}=\begin{cases} \mathbf{v}^* & \|\mathbf{v}^*\|\le V_{\max} \\ V_{\max}\mathbf{v}^*/\|\mathbf{v}^*\| & \text{en otro caso} \end{cases}
+```
+
 Preserva fase, escala magnitud. Fundamental en FOC para respetar hexágono SVPWM ($V_{\max}=V_{dc}/\sqrt3$).
 
 #### Transformaciones de Referencia
 
 **Clarke** ($3\to2$, amplitud invariante):
-$$ \begin{bmatrix}\alpha\\\beta\end{bmatrix}=\frac23\begin{bmatrix}1&-1/2&-1/2\\0&\sqrt3/2&-\sqrt3/2\end{bmatrix}\begin{bmatrix}a\\b\\c\end{bmatrix} $$
+
+```math
+\begin{bmatrix}\alpha\\\beta\end{bmatrix}=\frac23\begin{bmatrix}1&-1/2&-1/2\\0&\sqrt3/2&-\sqrt3/2\end{bmatrix}\begin{bmatrix}a\\b\\c\end{bmatrix}
+```
 
 **InvClarke:**
-$$ \begin{aligned} a&=\alpha\\ b&=-0.5\alpha+0.866\beta\\ c&=-0.5\alpha-0.866\beta \end{aligned} $$
+
+```math
+\begin{aligned} a&=\alpha\\ b&=-0.5\alpha+0.866\beta\\ c&=-0.5\alpha-0.866\beta \end{aligned}
+```
 
 **Park** ($\alpha\beta\to dq$, ángulo $\theta$):
-$$ \begin{bmatrix}d\\q\end{bmatrix}=\begin{bmatrix}\cos\theta&\sin\theta\\-\sin\theta&\cos\theta\end{bmatrix}\begin{bmatrix}\alpha\\\beta\end{bmatrix} $$
+
+```math
+\begin{bmatrix}d\\q\end{bmatrix}=\begin{bmatrix}\cos\theta&\sin\theta\\-\sin\theta&\cos\theta\end{bmatrix}\begin{bmatrix}\alpha\\\beta\end{bmatrix}
+```
 
 **InvPark:**
-$$ \begin{bmatrix}\alpha\\\beta\end{bmatrix}=\begin{bmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{bmatrix}\begin{bmatrix}d\\q\end{bmatrix} $$
+
+```math
+\begin{bmatrix}\alpha\\\beta\end{bmatrix}=\begin{bmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{bmatrix}\begin{bmatrix}d\\q\end{bmatrix}
+```
 
 **TransformadaQD:** Bloque compuesto $n_{in}=7$ ($v_{abc},i_{abc},\theta$), $n_{out}=4$ ($v_{qs},v_{ds},i_{qs},i_{ds}$) que encapsula Clarke+Park para medición FOC.
 
 #### Multiplexor / Demultiplexor
 Concatenación y separación de buses vectoriales sin dinámica:
-$$ \mathbf{y}=[u_0,\dots,u_{n-1}]^T,\quad y_k=u_k $$
+
+```math
+\mathbf{y}=[u_0,\dots,u_{n-1}]^T,\quad y_k=u_k
+```
 
 #### Tabla 1D / 2D / 3D (LUT)
 Interpolación multilineal sobre mallas estrictamente crecientes.
 
 1D: Dado $x$, con $x_k\le x<x_{k+1}$:
-$$ y=y_k+\frac{y_{k+1}-y_k}{x_{k+1}-x_k}(x-x_k) $$
+
+```math
+y=y_k+\frac{y_{k+1}-y_k}{x_{k+1}-x_k}(x-x_k)
+```
 
 2D: Bilineal sobre $(x_i,y_j,z_{ij})$.
 
@@ -216,23 +284,32 @@ Parámetros almacenan $n_x$, $x_i$, $y_i$, $z_{ij\dots}$.
 
 #### Logico y Relacional
 
-**Logico:** $y=\text{OP}(u_0,\dots,u_{n-1}>P_1)$, OP $\in\{\text{AND},\text{OR},\text{NAND},\text{NOR},\text{XOR},\text{XNOR},\text{NOT}\}$, $n_{in}$ configurable, umbral $P_1$.
+**Logico:** $y=\text{OP}(u_0,\dots,u_{n-1}>P_1)$, OP $\in\lbrace\text{AND},\text{OR},\text{NAND},\text{NOR},\text{XOR},\text{XNOR},\text{NOT}\rbrace$, $n_{in}$ configurable, umbral $P_1$.
 
-**Relacional:** $y=1$ si $u_0 \,\text{OP}\, u_1 \pm tol$, OP $\in\{=,\neq,<,\le,>,\ge\}$.
+**Relacional:** $y=1$ si $u_0\text{ OP }u_1 \pm tol$, OP $\in\lbrace=,\neq,<,\le,>,\ge\rbrace$.
 
 #### LimitadorRapidez (Rate Limiter)
 Estado $x$, $h=dt$:
-$$ x_{k+1}=x_k+\operatorname{clip}(u_k-x_k,\,-P_1h,\,P_0h) $$
+
+```math
+x_{k+1}=x_k+\operatorname{clip}(u_k-x_k,\,-P_1h,\,P_0h)
+```
+
 Parámetros: `subida`, `bajada` [unidades/s].
 
 #### RetenedorDisparado (Triggered Hold)
 Estados $x_0$ (valor retenido), $x_1$ (memoria de disparo). Si $u_{trig}>P_0$ y flanco:
-$$ x_0\gets u_{sig} $$
+
+```math
+x_0\gets u_{sig}
+```
 
 #### MaquinaEstados
-Autómata finito determinista con $n_{estados}$, $n_{entradas}$ y tabla de transiciones $(desde,hacia,idx_{señal},cond,umbral)$, cond $\in\{<,\le,>,\ge,=,\neq\}$.
+Autómata finito determinista con $n_{estados}$, $n_{entradas}$ y tabla de transiciones $(desde,hacia,idx_{señal},cond,umbral)$, cond $\in\lbrace<,\le,>,\ge,=,\neq\rbrace$.
 
-$$ s_{k+1}=\begin{cases} hacia & s_k=desde \land (u_{idx}\,cond\,umbral)\\ s_k & \text{en otro caso} \end{cases} $$
+```math
+s_{k+1}=\begin{cases} hacia & s_k=desde \land (u_{idx}\,cond\,umbral)\\ s_k & \text{en otro caso} \end{cases}
+```
 
 #### Filtros como FuncionTransferencia
 
@@ -247,45 +324,74 @@ $$ s_{k+1}=\begin{cases} hacia & s_k=desde \land (u_{idx}\,cond\,umbral)\\ s_k &
 ### 2.3 Bloques Dinámicos de Control y Sincronización
 
 #### Integrador
-$$ \dot x = u,\quad y=x,\quad x(0)=x_0 $$
+
+```math
+\dot x = u,\quad y=x,\quad x(0)=x_0
+```
 
 #### PID con Anti-Windup y Derivada Filtrada
 Estados: $x_0=\int e$, $x_1=e_{prev}$, $x_2=u_{d,filt}$.
 
-$$ \begin{aligned} u_d &= \frac{K_d(e_k-x_1)+T_f x_2}{T_f+h}\\ u_{raw}&=K_pe_k+K_ix_0+u_d\\ u&=\operatorname{clip}(u_{raw},u_{\min},u_{\max})\\ \dot x_0&= \begin{cases}0 & (u_{raw}>u_{\max}\land e_k>0)\lor(u_{raw}<u_{\min}\land e_k<0)\\ e_k & \text{en otro caso}\end{cases} \end{aligned} $$
+```math
+\begin{aligned} u_d &= \frac{K_d(e_k-x_1)+T_f x_2}{T_f+h}\\ u_{raw}&=K_pe_k+K_ix_0+u_d\\ u&=\operatorname{clip}(u_{raw},u_{\min},u_{\max})\\ \dot x_0&= \begin{cases}0 & (u_{raw}>u_{\max}\land e_k>0)\lor(u_{raw}<u_{\min}\land e_k<0)\\ e_k & \text{en otro caso}\end{cases} \end{aligned}
+```
 
 Parámetros: $K_p,K_i,K_d,T_f,u_{\min},u_{\max}$.
 
 #### PLLTrifasico
 Estados $\theta$, $w_{int}$. Entradas $v_a,v_b,v_c$, salidas $\omega,\theta$:
 
-$$ \begin{aligned} (\alpha,\beta)&=\text{Clarke}(v_{abc})\\ (v_d,v_q)&=\text{Park}(\alpha,\beta,\theta)\\ e&=v_q\\ w_{int}&\gets w_{int}+hK_i e\\ \omega&=2\pi f_{ff}+K_pe+w_{int}\\ \theta&\gets\theta+h\omega \end{aligned} $$
+```math
+\begin{aligned} (\alpha,\beta)&=\text{Clarke}(v_{abc})\\ (v_d,v_q)&=\text{Park}(\alpha,\beta,\theta)\\ e&=v_q\\ w_{int}&\gets w_{int}+hK_i e\\ \omega&=2\pi f_{ff}+K_pe+w_{int}\\ \theta&\gets\theta+h\omega \end{aligned}
+```
 
 #### EjeMecanico
 Múltiples máquinas acopladas rígidamente. Estados $\omega_m,\theta_m$. Entradas $T_{e,i}$ ($n_{maq}$) y $T_L$:
 
-$$ J_{eq}\dot\omega_m=\sum_i T_{e,i}-T_L-B_{m,eq}\omega_m,\quad \dot\theta_m=\omega_m $$
+```math
+J_{eq}\dot\omega_m=\sum_i T_{e,i}-T_L-B_{m,eq}\omega_m,\quad \dot\theta_m=\omega_m
+```
 
 #### MasaTermica
-$$ C_{th}\dot T = \sum_k P_k - (T-T_{amb})/R_{amb},\quad T(0)=T_{inicial} $$
+
+```math
+C_{th}\dot T = \sum_k P_k - (T-T_{amb})/R_{amb},\quad T(0)=T_{inicial}
+```
+
 Parámetros: $C_{th},T_{amb},R_{amb}$, $n_{in}$ configurable.
 
 #### ResistenciaTermica
-$$ q = (T_1-T_2)/R $$
+
+```math
+q = (T_1-T_2)/R
+```
 
 #### Engranaje
-$$ \omega_2=\omega_1/a,\quad T_2 = a\,T_1 $$
+
+```math
+\omega_2=\omega_1/a,\quad T_2 = a\,T_1
+```
 
 #### EjeFlexible
 Estados $\theta_1,\theta_2$:
-$$ \begin{aligned} T_{eje}&=K(\theta_1-\theta_2)+B(\omega_1-\omega_2)\\ \dot\theta_i&=\omega_i \end{aligned} $$
+
+```math
+\begin{aligned} T_{eje}&=K(\theta_1-\theta_2)+B(\omega_1-\omega_2)\\ \dot\theta_i&=\omega_i \end{aligned}
+```
 
 #### Embrague
-$$ T_{out}=\begin{cases} \min(T_{in},T_{\max}) & u_{ctrl}>umbral\\ 0 & \text{en otro caso} \end{cases} $$
+
+```math
+T_{out}=\begin{cases} \min(T_{in},T_{\max}) & u_{ctrl}>umbral\\ 0 & \text{en otro caso} \end{cases}
+```
 
 ### 2.4 Bloques de Fallas
 
-**FalloProgramado:** $y=\begin{cases}u & t<t_f\\ valor & t\ge t_f\land modo=0\\ u+valor & modo=1\end{cases}$
+**FalloProgramado:**
+
+```math
+y=\begin{cases}u & t<t_f\\ valor & t\ge t_f\land modo=0\\ u+valor & modo=1\end{cases}
+```
 
 **FalloEvento:** Idem pero disparado por $u_{trig}>umbral$.
 
@@ -301,7 +407,9 @@ Estados $[i_{qs},i_{ds},\omega_m,\theta_e]$, entradas $[v_a,v_b,v_c,T_L]$ (o 5 c
 
 Ecuaciones $dq$ síncronas:
 
-$$ \begin{aligned} v_d &= R_s i_d + L_d\dot i_d - \omega_e L_q i_q \\ v_q &= R_s i_q + L_q\dot i_q + \omega_e(L_d i_d+\lambda_m) \\ T_e &= \tfrac32\tfrac{P}{2}[\lambda_m i_q+(L_d-L_q)i_d i_q] \\ J\dot\omega_m &= T_e-T_L-B_m\omega_m,\quad \dot\theta_e=\tfrac{P}{2}\omega_m \end{aligned} $$
+```math
+\begin{aligned} v_d &= R_s i_d + L_d\dot i_d - \omega_e L_q i_q \\ v_q &= R_s i_q + L_q\dot i_q + \omega_e(L_d i_d+\lambda_m) \\ T_e &= \tfrac32\tfrac{P}{2}[\lambda_m i_q+(L_d-L_q)i_d i_q] \\ J\dot\omega_m &= T_e-T_L-B_m\omega_m,\quad \dot\theta_e=\tfrac{P}{2}\omega_m \end{aligned}
+```
 
 Parámetros: $R_s,L_d,L_q,\lambda_m,P,J,B_m$, $\theta_0$, `saturacion` opcional como LUT $i_d\to L_d(i_d)$.
 
@@ -311,9 +419,11 @@ Estados 6: $[\lambda_{qs},\lambda_{ds},\lambda'_{qr},\lambda'_{dr},\omega_m,\the
 
 Modelo $\alpha\beta$ estacionario (Krause):
 
-$$ \begin{aligned} \dot{\boldsymbol{\lambda}}_s &= \mathbf{v}_s-R_s\mathbf{i}_s \\ \dot{\boldsymbol{\lambda}}'_r &= -R'_r\mathbf{i}'_r+j\omega_r\boldsymbol{\lambda}'_r \\ \mathbf{i}_s &= L_{i00}\boldsymbol{\lambda}_s+L_{i01}\boldsymbol{\lambda}'_r \\ \mathbf{i}'_r &= L_{i01}\boldsymbol{\lambda}_s+L_{i11}\boldsymbol{\lambda}'_r \end{aligned} $$
+```math
+\begin{aligned} \dot{\boldsymbol{\lambda}}_s &= \mathbf{v}_s-R_s\mathbf{i}_s \\ \dot{\boldsymbol{\lambda}}'_r &= -R'_r\mathbf{i}'_r+j\omega_r\boldsymbol{\lambda}'_r \\ \mathbf{i}_s &= L_{i00}\boldsymbol{\lambda}_s+L_{i01}\boldsymbol{\lambda}'_r \\ \mathbf{i}'_r &= L_{i01}\boldsymbol{\lambda}_s+L_{i11}\boldsymbol{\lambda}'_r \end{aligned}
+```
 
-con $L_{i}=L^{-1}$, $L_s=L_{ls}+L_m$, $L_r=L_{lr}+L_m$. Par $T_e=\tfrac32\tfrac{P}{2}\Im\{\boldsymbol{\lambda}_s^*\mathbf{i}_s\}$. `velocidad_sincronica`= $4\pi f/P$ con $f=60$ Hz por defecto.
+con $L_{i}=L^{-1}$, $L_s=L_{ls}+L_m$, $L_r=L_{lr}+L_m$. Par $T_e=\tfrac32\tfrac{P}{2}\Im\lbrace\boldsymbol{\lambda}_s^*\mathbf{i}_s\rbrace$. `velocidad_sincronica`= $4\pi f/P$ con $f=60$ Hz por defecto.
 
 ### 3.3 MaquinaSincrona — `OP_MAQ_SINCRONA`
 
@@ -323,13 +433,17 @@ Estados 8: flujos $q/d$ (estator, campo, amortiguadores) + $\omega,\theta$. Entr
 
 Estados $[i_a,i_f,\omega_m,\theta_m]$, salidas 8: $i_a,i_f,\omega_m,\theta_m,T_e,E_a,V_t,P_{cu}$.
 
-$$ \begin{aligned} L_a\dot i_a &= V_t - R_a i_a - L_{AF}i_f\omega_m \\ L_f\dot i_f &= V_f - R_f i_f \\ T_e &= L_{AF}i_f i_a \\ J\dot\omega_m &= T_e-T_L-B_m\omega_m \end{aligned} $$
+```math
+\begin{aligned} L_a\dot i_a &= V_t - R_a i_a - L_{AF}i_f\omega_m \\ L_f\dot i_f &= V_f - R_f i_f \\ T_e &= L_{AF}i_f i_a \\ J\dot\omega_m &= T_e-T_L-B_m\omega_m \end{aligned}
+```
 
 ### 3.5 MaquinaDCImanesPermanentes — `OP_MAQ_DC_PM`
 
 Estados $[i_a,\omega_m,\theta_m]$, salidas 7.
 
-$$ \begin{aligned} L_a\dot i_a &= V_a - R_a i_a - K_t\omega_m \\ T_e &= K_t i_a \\ J\dot\omega_m &= T_e-T_L-B_m\omega_m \end{aligned} $$
+```math
+\begin{aligned} L_a\dot i_a &= V_a - R_a i_a - K_t\omega_m \\ T_e &= K_t i_a \\ J\dot\omega_m &= T_e-T_L-B_m\omega_m \end{aligned}
+```
 
 Sensores `sensorCorriente`, `sensorVelocidad`, `sensorPar`, `sensorEa` ($K_t\omega_m$), `sensorPerdidas`.
 
@@ -343,15 +457,21 @@ Evitan el lazo algebraico $V\to I$ de interconectar inductor e interruptor causa
 
 **Buck:**
 
-$$ L\dot i_L = dV_{in}-v_C,\quad C\dot v_C = i_L-v_C/R $$
+```math
+L\dot i_L = dV_{in}-v_C,\quad C\dot v_C = i_L-v_C/R
+```
 
 **Boost:**
 
-$$ L\dot i_L = V_{in}-(1-d)v_C,\quad C\dot v_C = (1-d)i_L-v_C/R $$
+```math
+L\dot i_L = V_{in}-(1-d)v_C,\quad C\dot v_C = (1-d)i_L-v_C/R
+```
 
 **BuckBoost:**
 
-$$ L\dot i_L = dV_{in}-(1-d)v_C,\quad C\dot v_C = (1-d)i_L-v_C/R $$
+```math
+L\dot i_L = dV_{in}-(1-d)v_C,\quad C\dot v_C = (1-d)i_L-v_C/R
+```
 
 Parámetros $L,C,R$.
 
@@ -359,7 +479,9 @@ Parámetros $L,C,R$.
 
 Estado $v_{dc}$, entradas $v_{abc}$, salidas $[v_{dc},i_{dc}]$.
 
-$$ v_{rec}= \max(v_{abc})-\min(v_{abc}),\quad i_{ch}=(v_{rec}-v_{dc})/R_{int}\,( \ge0),\quad C\dot v_{dc}=i_{ch}-v_{dc}/R $$
+```math
+v_{rec}= \max(v_{abc})-\min(v_{abc}),\quad i_{ch}=(v_{rec}-v_{dc})/R_{int}\,( \ge0),\quad C\dot v_{dc}=i_{ch}-v_{dc}/R
+```
 
 ### 4.3 InversorTrifasico / Monofasico
 
@@ -373,7 +495,9 @@ Sensores `sensorVoltajesSalida`, `sensorCorrientesFase`.
 
 **CargaRLTrifasica:** Estados $[i_a,i_b]$, $i_c=-(i_a+i_b)$.
 
-$$ \dot i_k = (v_k-v_n - R i_k)/L,\quad v_n=\tfrac13\sum v_k $$
+```math
+\dot i_k = (v_k-v_n - R i_k)/L,\quad v_n=\tfrac13\sum v_k
+```
 
 Constructor alternativo `desde_pq(p_w,q_var,v_ll,f)` calcula $R=3V_{ln}^2P/(P^2+Q^2)$, $L=3V_{ln}^2Q/(P^2+Q^2)/(2\pi f)$.
 
@@ -393,11 +517,13 @@ Constructor alternativo `desde_pq(p_w,q_var,v_ll,f)` calcula $R=3V_{ln}^2P/(P^2+
 
 ### 5.1 BateriaECM — `OP_BATERIA_ECM`
 
-Estados $[SOC, v_1, v_2, T_{cell}]$, entradas $[i_{load}]$, salidas 6: $[V_{term},SOC,T_{cell},P_{loss},I_{chg\_lim},I_{dch\_lim}]$.
+Estados $[SOC, v_1, v_2, T_{cell}]$, entradas $[i_{load}]$, salidas 6: $[V_{term},SOC,T_{cell},P_{loss},I_{chg,lim},I_{dch,lim}]$.
 
 Ecuaciones:
 
-$$ \begin{aligned} \dot{SOC} &= -i_{cell}/(Q_{nom}3600)\\ \dot v_1 &= (i_{cell}-v_1/R_1)/C_1\\ \dot v_2 &= (i_{cell}-v_2/R_2)/C_2\\ C_{th}\dot T &= P_{loss}-(T-T_{amb})/R_{th}\\ V_{oc}&= f_{LUT}(SOC)\\ V_{cell}&=V_{oc}-i_{cell}R_0-v_1-v_2\\ P_{loss,cell}&=i_{cell}^2R_0+v_1^2/R_1+v_2^2/R_2 \end{aligned} $$
+```math
+\begin{aligned} \dot{SOC} &= -i_{cell}/(Q_{nom}3600)\\ \dot v_1 &= (i_{cell}-v_1/R_1)/C_1\\ \dot v_2 &= (i_{cell}-v_2/R_2)/C_2\\ C_{th}\dot T &= P_{loss}-(T-T_{amb})/R_{th}\\ V_{oc}&= f_{LUT}(SOC)\\ V_{cell}&=V_{oc}-i_{cell}R_0-v_1-v_2\\ P_{loss,cell}&=i_{cell}^2R_0+v_1^2/R_1+v_2^2/R_2 \end{aligned}
+```
 
 Parámetros: $Q_{nom},V_{nom},R_0,R_1,C_1,R_2,C_2,N_s,N_p$, tabla OCV-SOC (14 puntos NMC por defecto), límites $I_{chg},I_{dch},T_{min/max}$, $R_{th},C_{th},T_{amb}$, degradación. Escalado pack $V_{term}=N_sV_{cell}$, $i_{cell}=i_{load}/N_p$.
 
@@ -417,7 +543,7 @@ Métodos:
 
 *`datos(res)`*: retorna $(t,d)$ con $d\in\mathbb{R}^{N\times n}$.
 
-*`mostrar_grafico(res)`*: Renderiza con `matplotlib` (estilo Times New Roman/Stix, $\ge$22pt), con diezmado adaptativo si $N>max\_puntos$:
+*`mostrar_grafico(res)`*: Renderiza con `matplotlib` (estilo Times New Roman/Stix, $\ge 22$ pt), con diezmado adaptativo si $N>$ `max_puntos`:
 
 - `decimar_datos(t,y,metodo="step"|"lttb"|"minmax")`: *step* $t[::k]$, *LTTB* preserva triángulos, *minmax* conserva envolvente por bins ($y_{\min},y_{\max}$ por bin). Complejidad $\mathcal{O}(N)$.
 
@@ -487,7 +613,7 @@ Módulo `red/` desacoplado:
 
 *`BackendRed`* (ABC): `set_carga(bus,P,Q)`, `set_generacion`, `runpp()`, `get_tension(bus)->TensionBus(magnitud_v,angulo_rad)`, `get_corriente_linea`. Unidades SI en frontera, conversiones en `unidades.py` (`SistemaUnidades`).
 
-*`CoSimuladorRed`*: orquestación por ventanas $H=dt_{red}$ con promediado $P,Q$, `runpp`, sub-relajación $V^\alpha=\alpha V_{new}+(1-\alpha)V_{old}$, convergencia $\|V^\alpha-V_{old}\|<\varepsilon$.
+*`CoSimuladorRed`*: orquestación por ventanas $H=dt_{red}$ con promediado $P,Q$, `runpp`, sub-relajación $V^\alpha=\alpha V_{new}+(1-\alpha)V_{old}$, convergencia $\lVert V^\alpha-V_{old}\rVert<\varepsilon$.
 
 Atajos `Modelo.acoplar_red(backend, bus_pcc, elemento, v_nominal_ll, dt_red)` y `acoplar_pcc(maquina,bus_idx)`.
 
