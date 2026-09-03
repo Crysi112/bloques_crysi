@@ -399,7 +399,7 @@ y=\begin{cases}u & t\lt t_f\\ valor & t\ge t_f\land modo=0\\ u+valor & modo=1\en
 
 ## 3. Máquinas Eléctricas
 
-Todas derivan de `Maquina` con $n_{out}=10$ (o específico), puertos `terminales` (3), `T_L`, y sensores: `sensor3V/3I`, `sensorVelocidad` ($w_m$), `sensorPosicion` ($\theta_{rm}$), `sensorPosicionElectrica` ($\theta_e$), `sensorPar` ($T_e$), `sensorCorrienteD/Q` ($i_{ds},i_{qs}$), `sensorPerdidasEstator` ($P_{cu,s}$), `sensorCorrienteRotor` ($i'\sb{ar},i'\sb{br},i'\sb{cr}$), `resumen()`.
+Todas derivan de `Maquina` con $n_{out}=10$ (o específico), puertos `terminales` (3), `T_L`, y sensores: `sensor3V/3I`, `sensorVelocidad` ($w_m$), `sensorPosicion` ($\theta_{rm}$), `sensorPosicionElectrica` ($\theta_e$), `sensorPar` ($T_e$), `sensorCorrienteD/Q` ($i_{ds},i_{qs}$), `sensorPerdidasEstator` ($P_{cu,s}$), `sensorCorrienteRotor` ($i'{ar},i'\{br},i'\{cr}$), `resumen()`.
 
 ### 3.1 MaquinaImanesPermanentes (PMSM/PMAC) — `OP_MAQ_PMAC`
 
