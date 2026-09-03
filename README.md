@@ -415,7 +415,7 @@ Parámetros: $R_s,L_d,L_q,\lambda_m,P,J,B_m$, $\theta_0$, `saturacion` opcional 
 
 ### 3.2 MaquinaInduccion — `OP_MAQ_INDUCCION`
 
-Estados 6: $[\lambda\sb{qs},\lambda\sb{ds},\lambda'\sb{qr},\lambda'\sb{dr},\omega\sb{m},\theta\sb{m}]$, salidas 13 incluyendo $i'\sb{ar},i'\sb{br},i'\sb{cr}$.
+Estados 6: $[\lambda{qs},\lambda{ds},\lambda'{qr},\lambda'{dr},\omega{m},\theta{m}]$, salidas 13 incluyendo $i'{ar},i'{br},i'{cr}$.
 
 Modelo $\alpha\beta$ estacionario (Krause):
 
