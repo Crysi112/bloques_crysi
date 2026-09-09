@@ -25,7 +25,7 @@ Ibase_sub_mt = 5_000_000.0 / (math.sqrt(3) * 4160.0)
 Ibase_xfm1_mt = 500_000.0 / (math.sqrt(3) * 4160.0)
 Ibase_xfm1_bt = 500_000.0 / (math.sqrt(3) * 480.0)
 
-IR_BT, ISD_BT, II_BT = 680.0, 2720.0, 8000.0
+IR_BT, ISD_BT, II_BT = 708.05, 2832.2, 8330.0
 INRUSH_BT = 12.0 * Ibase_xfm1_bt
 print(f"\nITM 634: Ii={II_BT:.0f} A vs inrush 12xIn={INRUSH_BT:.0f} A "
       f"(margen {II_BT / INRUSH_BT:.2f}x, debe ser >1.0)")
@@ -129,6 +129,7 @@ print(f"87T interna: trip={ok_int} (Idiff={id_int:.2f}, Irest={ir_int:.2f})")
 print("\nParejas de coordinacion (aguas abajo -> aguas arriba):")
 verificar_cti([
     ("ITM-BT I/S @634", float(curva_itm(icc3["634"], ir=IR_BT, isd=ISD_BT, ii=II_BT)),
+    
      "Fusible 100T @633", float(curva_fusible(icc3["634"] / NXFM1, 100.0)), 0.20),
     ("Fusible 100T @633", float(curva_fusible(icc3["633"], 100.0)),
      "51 Troncal @632", curva_51(r51_tr, icc3["633"]), 0.20),
