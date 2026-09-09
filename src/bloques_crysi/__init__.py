@@ -94,6 +94,10 @@ from .mna import (
     VSource, ISource, Switch,
 )
 from .subsistemas import crear_control_foc, crear_driver_modelo
+from .tcc import (
+    curva_51, curva_fusible, curva_itm, curva_dano,
+    icc_faultstudy, verificar_cti, figura_tcc,
+)
 from .protecciones import (
     Rele50, Rele51, Rele67, Rele49, Rele46, Rele62, Rele63, Rele27, Rele59, Rele81, Rele24,
     Rele87, Rele21, Disyuntor52, Rele86, Rele79, Rele25,
@@ -133,6 +137,8 @@ __all__ = [
     "MaquinaSincrona", "MaquinaCorrienteContinua", "MaquinaDCImanesPermanentes",
     "MotorHardwareCH32",
     "crear_control_foc", "crear_driver_modelo",
+    "curva_51", "curva_fusible", "curva_itm", "curva_dano",
+    "icc_faultstudy", "verificar_cti", "figura_tcc",
     "Rele50", "Rele51", "Rele67", "Rele49", "Rele46", "Rele62", "Rele63", "Rele27", "Rele59", "Rele81", "Rele24",
     "Rele87", "Rele21", "Disyuntor52", "Rele86", "Rele79", "Rele25", "crear_proteccion",
     "__version__",

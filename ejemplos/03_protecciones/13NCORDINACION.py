@@ -1,156 +1,117 @@
 """Esquema de protecciones alimentador IEEE 13 nodos (ANSI/IEEE C37.2).
 
-Secciones 1-4 y 6-7 segun memoria de calculo: 87T/50/51/51NT en
-subestacion, cabecera 650, troncal 632-671, ramal 632-645 (51B/51C/51N+79),
-XFM-1 (fusible 100T + ITM LSI+G en BT) y acometida industrial 671 (51+46).
+Datos + factory crear_proteccion + modulo bloques_crysi.tcc.
+Sin funciones ni ciclos de calculo: todo lo reusable vive en la libreria.
 """
 
-import csv
 import cmath
 import math
 from pathlib import Path
 
 import numpy as np
 from bloques_crysi.red import RedOpenDSS
-from bloques_crysi import crear_proteccion
+from bloques_crysi import (
+    crear_proteccion, curva_51, curva_fusible, curva_itm, curva_dano,
+    icc_faultstudy, verificar_cti, figura_tcc,
+)
+from bloques_crysi.tcc import K_FUSIBLE_K
 
-INF = float("inf")
 BASE = Path(__file__).resolve().parent.parent.parent
 IMG = BASE / "docs" / "img"
 IMG.mkdir(parents=True, exist_ok=True)
 
+NXFM1 = 4.16 / 0.48
+Ibase_sub_mt = 5_000_000.0 / (math.sqrt(3) * 4160.0)
+Ibase_xfm1_mt = 500_000.0 / (math.sqrt(3) * 4160.0)
+
 # ================================================================
-# 1. RED IEEE 13 NODOS (MODELO PARCIAL: 650/632/671/633/634/645)
+# 1. RED IEEE 13 NODOS
 # ================================================================
-v_ll_kv = 4.16
 red = RedOpenDSS(nombre="IEEE_13_Completo", v_slack_kv_ll=115.0, f_hz=60.0)
 backend = red.compilar()
+dss = backend.dss.text
 
-bus_fuente = backend.dss.text("? Vsource.source.bus1").strip() or "sourcebus"
+bus_fuente = dss("? Vsource.source.bus1").strip() or "sourcebus"
+dss("Edit Vsource.source basekv=115.0 pu=1.0 Isc3=10000 Isc1=10000")
+dss("New Transformer.Sub Phases=3 Windings=2 XHL=8")
+dss(f"~ wdg=1 bus={bus_fuente} conn=Delta kv=115 kva=5000 %r=1")
+dss("~ wdg=2 bus=650 conn=Wye kv=4.16 kva=5000 %r=1")
+dss("New Transformer.XFM1 Phases=3 Windings=2 XHL=2 wdg=1 bus=633 conn=Wye kv=4.16 kva=500 wdg=2 bus=634 conn=Wye kv=0.48 kva=500")
 
-backend.dss.text("Edit Vsource.source basekv=115.0 pu=1.0 Isc3=10000 Isc1=10000")
+for lc in [
+    "601 nphases=3 units=mi rmatrix=[0.3465 | 0.1560 0.3375 | 0.1580 0.1535 0.3414] xmatrix=[1.0179 | 0.5017 1.0478 | 0.4236 0.3849 1.0348]",
+    "602 nphases=3 units=mi rmatrix=[0.7526 | 0.1580 0.7475 | 0.1560 0.1535 0.7436] xmatrix=[1.1814 | 0.4236 1.1983 | 0.5017 0.3849 1.2112]",
+    "603 nphases=2 units=mi rmatrix=[1.3294 | 0.2066 1.3238] xmatrix=[1.3471 | 0.4591 1.3569]",
+    "604 nphases=2 units=mi rmatrix=[1.3294 | 0.2066 1.3238] xmatrix=[1.3471 | 0.4591 1.3569]",
+    "605 nphases=1 units=mi rmatrix=[1.3294] xmatrix=[1.3471]",
+    "606 nphases=3 units=mi rmatrix=[0.1600 | 0.0500 0.1600 | 0.0500 0.0500 0.1600] xmatrix=[0.1200 | 0.0400 0.1200 | 0.0400 0.0400 0.1200]",
+    "607 nphases=1 units=mi rmatrix=[0.3500] xmatrix=[0.1000]",
+]:
+    dss(f"New Linecode.{lc}")
 
-backend.dss.text("New Transformer.Sub Phases=3 Windings=2 XHL=8")
-backend.dss.text(f"~ wdg=1 bus={bus_fuente} conn=Delta kv=115 kva=5000 %r=1")
-backend.dss.text("~ wdg=2 bus=650 conn=Wye kv=4.16 kva=5000 %r=1")
+for b1, b2, lon, ph, lc in [
+    ("650", "632", 2000, 3, 601), ("632", "671", 2000, 3, 601),
+    ("632", "633", 500, 3, 602), ("632.2.3", "645.2.3", 500, 2, 603),
+    ("645.2.3", "646.2.3", 300, 2, 603), ("671.1.3", "684.1.3", 300, 2, 604),
+    ("684.3", "611.3", 300, 1, 605), ("684.1", "652.1", 800, 1, 607),
+    ("671", "692", 100, 3, 601), ("692", "675", 500, 3, 606),
+]:
+    dss(f"New Line.L_{b1}_{b2} bus1={b1} bus2={b2} length={lon} units=ft phases={ph} linecode={lc}")
 
-backend.dss.text("New Linecode.601 nphases=3 units=mi rmatrix=[0.3465 | 0.1560 0.3375 | 0.1580 0.1535 0.3414] xmatrix=[1.0179 | 0.5017 1.0478 | 0.4236 0.3849 1.0348]")
-backend.dss.text("New Linecode.602 nphases=3 units=mi rmatrix=[0.7526 | 0.1580 0.7475 | 0.1560 0.1535 0.7436] xmatrix=[1.1814 | 0.4236 1.1983 | 0.5017 0.3849 1.2112]")
-backend.dss.text("New Linecode.603 nphases=2 units=mi rmatrix=[1.3294 | 0.2066 1.3238] xmatrix=[1.3471 | 0.4591 1.3569]")
-backend.dss.text("New Linecode.604 nphases=2 units=mi rmatrix=[1.3294 | 0.2066 1.3238] xmatrix=[1.3471 | 0.4591 1.3569]")
-backend.dss.text("New Linecode.605 nphases=1 units=mi rmatrix=[1.3294] xmatrix=[1.3471]")
-backend.dss.text("New Linecode.606 nphases=3 units=mi rmatrix=[0.1600 | 0.0500 0.1600 | 0.0500 0.0500 0.1600] xmatrix=[0.1200 | 0.0400 0.1200 | 0.0400 0.0400 0.1200]")
-backend.dss.text("New Linecode.607 nphases=1 units=mi rmatrix=[0.3500] xmatrix=[0.1000]")
-
-backend.dss.text("New Line.L_650_632 bus1=650 bus2=632 length=2000 units=ft phases=3 linecode=601")
-backend.dss.text("New Line.L_632_671 bus1=632 bus2=671 length=2000 units=ft phases=3 linecode=601")
-backend.dss.text("New Line.L_632_633 bus1=632 bus2=633 length=500 units=ft phases=3 linecode=602")
-backend.dss.text("New Line.L_632_645 bus1=632.2.3 bus2=645.2.3 length=500 units=ft phases=2 linecode=603")
-backend.dss.text("New Line.L_645_646 bus1=645.2.3 bus2=646.2.3 length=300 units=ft phases=2 linecode=603")
-backend.dss.text("New Line.L_671_684 bus1=671.1.3 bus2=684.1.3 length=300 units=ft phases=2 linecode=604")
-backend.dss.text("New Line.L_684_611 bus1=684.3 bus2=611.3 length=300 units=ft phases=1 linecode=605")
-backend.dss.text("New Line.L_684_652 bus1=684.1 bus2=652.1 length=800 units=ft phases=1 linecode=607")
-backend.dss.text("New Line.L_671_692 bus1=671 bus2=692 length=100 units=ft phases=3 linecode=601")
-backend.dss.text("New Line.L_692_675 bus1=692 bus2=675 length=500 units=ft phases=3 linecode=606")
-
-backend.dss.text("New Transformer.XFM1 Phases=3 Windings=2 XHL=2 wdg=1 bus=633 conn=Wye kv=4.16 kva=500 wdg=2 bus=634 conn=Wye kv=0.48 kva=500")
-backend.dss.text("New Load.Load_671 bus1=671 phases=3 kv=4.16 kw=1155 kvar=660 model=1 conn=Delta")
-backend.dss.text("New Load.Load_634 bus1=634 phases=3 kv=0.48 kw=400 kvar=290 model=1 conn=Wye")
-backend.dss.text("New Load.L_645B bus1=645.2 phases=1 kv=2.4 kw=170 kvar=125 model=1")
-backend.dss.text("New Load.L_646BC bus1=646.2.3 phases=2 kv=4.16 kw=230 kvar=132 model=1 conn=Delta")
-backend.dss.text("New Load.L_675A bus1=675.1 phases=1 kv=2.4 kw=485 kvar=190 model=1")
-backend.dss.text("New Load.L_675B bus1=675.2 phases=1 kv=2.4 kw=68 kvar=60 model=1")
-backend.dss.text("New Load.L_675C bus1=675.3 phases=1 kv=2.4 kw=290 kvar=212 model=1")
-backend.dss.text("New Load.L_692 bus1=692 phases=3 kv=4.16 kw=170 kvar=151 model=1 conn=Delta")
-backend.dss.text("New Capacitor.CAP675 bus1=675 phases=3 kv=4.16 kvar=600 conn=Wye")
-backend.dss.text("New Load.L_611 bus1=611.3 phases=1 kv=2.4 kw=170 kvar=80 model=1")
-backend.dss.text("New Capacitor.CAP611 bus1=611.3 phases=1 kv=2.4 kvar=100")
-backend.dss.text("New Load.L_652 bus1=652.1 phases=1 kv=2.4 kw=128 kvar=86 model=1")
-
-backend.dss.text("Set VoltageBases=[115, 4.16, 0.48]")
-backend.dss.text("CalcVoltageBases")
-backend.dss.text("Solve")
+for cmd in [
+    "New Load.Load_671 bus1=671 phases=3 kv=4.16 kw=1155 kvar=660 model=1 conn=Delta",
+    "New Load.Load_634 bus1=634 phases=3 kv=0.48 kw=400 kvar=290 model=1 conn=Wye",
+    "New Load.L_645B bus1=645.2 phases=1 kv=2.4 kw=170 kvar=125 model=1",
+    "New Load.L_646BC bus1=646.2.3 phases=2 kv=4.16 kw=230 kvar=132 model=1 conn=Delta",
+    "New Load.L_675A bus1=675.1 phases=1 kv=2.4 kw=485 kvar=190 model=1",
+    "New Load.L_675B bus1=675.2 phases=1 kv=2.4 kw=68 kvar=60 model=1",
+    "New Load.L_675C bus1=675.3 phases=1 kv=2.4 kw=290 kvar=212 model=1",
+    "New Load.L_692 bus1=692 phases=3 kv=4.16 kw=170 kvar=151 model=1 conn=Delta",
+    "New Capacitor.CAP675 bus1=675 phases=3 kv=4.16 kvar=600 conn=Wye",
+    "New Load.L_611 bus1=611.3 phases=1 kv=2.4 kw=170 kvar=80 model=1",
+    "New Capacitor.CAP611 bus1=611.3 phases=1 kv=2.4 kvar=100",
+    "New Load.L_652 bus1=652.1 phases=1 kv=2.4 kw=128 kvar=86 model=1",
+    "Set VoltageBases=[115, 4.16, 0.48]", "CalcVoltageBases", "Solve",
+]:
+    dss(cmd)
 
 # ================================================================
-# 2. CORTOCIRCUITO (FAULTSTUDY) EN BARRAS MODELADAS
+# 2. CORTOCIRCUITO POR BARRA
 # ================================================================
-backend.dss.text("Solve mode=FaultStudy")
-ruta_fs = backend.dss.text("Export Faultstudy").strip()
-icc3, icc1 = {}, {}
-try:
-    with open(ruta_fs, newline="") as f:
-        lector = csv.DictReader(f)
-        lector.fieldnames = [c.strip() for c in lector.fieldnames]
-        for fila in lector:
-            fila = {k.strip(): v.strip() for k, v in fila.items()}
-            try:
-                icc3[fila["Bus"].upper()] = float(fila["3-Phase"])
-                icc1[fila["Bus"].upper()] = float(fila["1-Phase"])
-            except (KeyError, ValueError):
-                pass
-except OSError as e:
-    print(f"Sin export FaultStudy ({e}); se continua sin Icc de OpenDSS.")
-
 BUSES = ["650", "632", "671", "633", "634", "645", "646", "684", "611", "652", "692", "675"]
 print("Icc 3F/1F por barra (A):")
-for b in BUSES:
-    print(f"  {b}: 3F={icc3.get(b, float('nan')):.1f}  1F={icc1.get(b, float('nan')):.1f}")
+icc3, icc1 = icc_faultstudy(backend, BUSES)
 
 # ================================================================
-# 3. RELES ANSI (FACTORY) - AJUSTES DE LA MEMORIA DE CALCULO
+# 3. RELES ANSI (FACTORY)
 # ================================================================
 r87_sub = crear_proteccion("87T", "87_Sub", I_min=0.2, slope1=0.25, slope2=0.60, I_break=2.0)
-r51_AT = crear_proteccion("51P", "51_AT115", I_pickup=35.0, dial_tds=4.5,
-                          tipo_curva="IEEE_VERY_INVERSE")
-r51NT = crear_proteccion("51NT", "51NT_Sub", I_pickup=140.0, dial_tds=5.0,
-                         tipo_curva="IEC_STANDARD_INVERSE")
-r51_cab = crear_proteccion("51P", "51_Cab650", I_pickup=735.0, dial_tds=3.0,
-                           tipo_curva="IEEE_EXTREMELY_INVERSE")
-r51N_cab = crear_proteccion("51N", "51N_Cab650", I_pickup=150.0, dial_tds=3.0,
-                            tipo_curva="IEEE_EXTREMELY_INVERSE")
-r51_tr = crear_proteccion("51P", "51_Troncal", I_pickup=580.0, dial_tds=2.5,
-                          tipo_curva="IEEE_EXTREMELY_INVERSE")
-r51N_tr = crear_proteccion("51N", "51N_Troncal", I_pickup=95.0, dial_tds=2.0,
-                           tipo_curva="IEC_STANDARD_INVERSE")
-r51_671 = crear_proteccion("51P", "51_Acom671", I_pickup=230.0, dial_tds=1.5,
-                           tipo_curva="IEC_STANDARD_INVERSE")
+r51_AT = crear_proteccion("51P", "51_AT115", I_pickup=35.0, dial_tds=4.5, tipo_curva="IEEE_VERY_INVERSE")
+r51NT = crear_proteccion("51NT", "51NT_Sub", I_pickup=140.0, dial_tds=5.0, tipo_curva="IEC_STANDARD_INVERSE")
+r51_cab = crear_proteccion("51P", "51_Cab650", I_pickup=735.0, dial_tds=3.0, tipo_curva="IEEE_EXTREMELY_INVERSE")
+r51N_cab = crear_proteccion("51N", "51N_Cab650", I_pickup=150.0, dial_tds=3.0, tipo_curva="IEEE_EXTREMELY_INVERSE")
+r51_tr = crear_proteccion("51P", "51_Troncal", I_pickup=580.0, dial_tds=2.5, tipo_curva="IEEE_EXTREMELY_INVERSE")
+r51N_tr = crear_proteccion("51N", "51N_Troncal", I_pickup=95.0, dial_tds=2.0, tipo_curva="IEC_STANDARD_INVERSE")
+r51_671 = crear_proteccion("51P", "51_Acom671", I_pickup=230.0, dial_tds=1.5, tipo_curva="IEC_STANDARD_INVERSE")
 r46_671 = crear_proteccion("46", "46_Acom671", I2_pickup=27.7, t_retardo=3.0)
-r51B_645 = crear_proteccion("51P", "51B_Ramal645", I_pickup=180.0, dial_tds=2.0,
-                            tipo_curva="IEEE_MODERATELY_INVERSE")
-r51C_645 = crear_proteccion("51P", "51C_Ramal645", I_pickup=85.0, dial_tds=2.0,
-                            tipo_curva="IEEE_MODERATELY_INVERSE")
-r51N_645 = crear_proteccion("51N", "51N_Ramal645", I_pickup=145.0, dial_tds=2.0,
-                            tipo_curva="IEEE_MODERATELY_INVERSE")
+r51B_645 = crear_proteccion("51P", "51B_Ramal645", I_pickup=180.0, dial_tds=2.0, tipo_curva="IEEE_MODERATELY_INVERSE")
+r51C_645 = crear_proteccion("51P", "51C_Ramal645", I_pickup=85.0, dial_tds=2.0, tipo_curva="IEEE_MODERATELY_INVERSE")
+r51N_645 = crear_proteccion("51N", "51N_Ramal645", I_pickup=145.0, dial_tds=2.0, tipo_curva="IEEE_MODERATELY_INVERSE")
 r79_645 = crear_proteccion("79", "79_Ramal645", tiempos_muertos=(2.0, 15.0))
 r79_tr = crear_proteccion("79", "79_Troncal")
 r52_650 = crear_proteccion("52", "52_Cab650", t_apertura_mecanica=0.05)
 r86_sub = crear_proteccion("86", "86_Sub")
-
-# Transicion aereo-subterranea 692 -> 675 (desensibilizado por desbalance)
-r51_692 = crear_proteccion("51P", "51_Subt692", I_pickup=260.0, dial_tds=1.5,
-                           tipo_curva="IEEE_VERY_INVERSE")
-r51N_692 = crear_proteccion("51N", "51N_Subt692", I_pickup=160.0, dial_tds=1.5,
-                            tipo_curva="IEEE_VERY_INVERSE")
-# Sin recierre en zona subterranea (XLPE no admite 79)
+r51_692 = crear_proteccion("51P", "51_Subt692", I_pickup=260.0, dial_tds=1.5, tipo_curva="IEEE_VERY_INVERSE")
+r51N_692 = crear_proteccion("51N", "51N_Subt692", I_pickup=160.0, dial_tds=1.5, tipo_curva="IEEE_VERY_INVERSE")
 r79_692_bloq = crear_proteccion("79", "79_Subt692_Bloqueado", tiempos_muertos=())
-
-# Cabecera derivacion bifasica 671 -> 684 (Sec. 6.1)
-r51A_684 = crear_proteccion("51P", "51A_Cab684", I_pickup=80.0, dial_tds=1.5,
-                            tipo_curva="IEC_STANDARD_INVERSE")
-r51C_684 = crear_proteccion("51P", "51C_Cab684", I_pickup=90.0, dial_tds=1.5,
-                            tipo_curva="IEC_STANDARD_INVERSE")
-r51N_684 = crear_proteccion("51N", "51N_Cab684", I_pickup=90.0, dial_tds=1.5,
-                            tipo_curva="IEC_STANDARD_INVERSE")
-
-# Bancos de capacitores (IEEE 1036 / NEC 460)
+r51A_684 = crear_proteccion("51P", "51A_Cab684", I_pickup=80.0, dial_tds=1.5, tipo_curva="IEC_STANDARD_INVERSE")
+r51C_684 = crear_proteccion("51P", "51C_Cab684", I_pickup=90.0, dial_tds=1.5, tipo_curva="IEC_STANDARD_INVERSE")
+r51N_684 = crear_proteccion("51N", "51N_Cab684", I_pickup=90.0, dial_tds=1.5, tipo_curva="IEC_STANDARD_INVERSE")
 r59N_675 = crear_proteccion("59N", "59N_Cap675", V_pickup=0.05, t_retardo=0.2)
 r62_675 = crear_proteccion("62", "62_DescargaCap", t_retardo=300.0)
-
-# Bloqueo LTC del regulador 650-632 durante falla (IEEE C57.15)
 r50_LTC = crear_proteccion("50", "50_Lockout_Regulador", I_pickup=1400.0)
 
 print("\nZona subterranea 692/675/652: 79 BLOQUEADO (sin recierre en XLPE)")
-
 print("\nAjustes instanciados:")
 for r in (r87_sub, r51_AT, r51NT, r51_cab, r51N_cab, r51_tr, r51N_tr,
           r51_671, r46_671, r51B_645, r51C_645, r51N_645,
@@ -158,118 +119,52 @@ for r in (r87_sub, r51_AT, r51NT, r51_cab, r51N_cab, r51_tr, r51N_tr,
           r59N_675, r62_675, r50_LTC):
     print(f"  {r.codigo_ansi:6s} {r.nombre:20s} param={r.param}")
 
-# Demo 87T: condicion pasante (no opera) vs falla interna (opera)
 ok_pas, id_pas, ir_pas = r87_sub.evaluar_disparo(2.51 + 0j, -2.51 + 0j)
 ok_int, id_int, ir_int = r87_sub.evaluar_disparo(2.51 + 0j, 2.51 + 0j)
 print(f"\n87T pasante: trip={ok_pas} (Idiff={id_pas:.2f}, Irest={ir_pas:.2f})")
 print(f"87T interna: trip={ok_int} (Idiff={id_int:.2f}, Irest={ir_int:.2f})")
 
 # ================================================================
-# 4. CURVAS AUXILIARES (FUSIBLES T, ITM BT, DANO TRAFOS C57.109)
+# 4. SELECTIVIDAD (CTI)
 # ================================================================
-K_T = 0.35 * (833.0 / 100.0) ** 2  # fusible 100T: 0.35 s a 833 A (inrush XFM-1)
-K_K = 0.15 * (500.0 / 65.0) ** 2   # fusible 65K: aprox. 0.054 s a 500 A
-
-def t_fuseT(i_rat, i):
-    i = np.asarray(i, dtype=float)
-    return np.where(i > i_rat, K_T * (i_rat / i) ** 2, INF)
-
-def t_fuseK(i_rat, i):
-    i = np.asarray(i, dtype=float)
-    return np.where(i > (i_rat * 1.35), K_K * (i_rat / i) ** 2.5, INF)
-
-IR_BT, ISD_BT, II_BT = 680.0, 2720.0, 6800.0  # ITM 800 A marco, LSI+G
-
-def t_itm(i):
-    i = np.asarray(i, dtype=float)
-    t = np.full_like(i, INF)
-    m_l = (i >= IR_BT) & (i < ISD_BT)
-    m_s = (i >= ISD_BT) & (i < II_BT)
-    m_i = i >= II_BT
-    t[m_l] = 10.0 * (6.0 * IR_BT / i[m_l]) ** 2
-    t[m_s] = 0.2
-    t[m_i] = 0.02
-    return t
-
-NXFM1 = 4.16 / 0.48  # relacion XFM-1 para referir corrientes
-
-def t_dano_trafo(i, i_base, K=1250.0, i_min_pu=2.0):
-    # IEEE C57.109: la curva I2t solo es valida de 2 pu en adelante;
-    # por debajo el trafo soporta la corriente en regimen continuo.
-    i = np.asarray(i, dtype=float)
-    return np.where(i >= i_min_pu * i_base, K / (i / i_base) ** 2, INF)
-
-Ibase_sub_mt = 5_000_000.0 / (math.sqrt(3) * 4160.0)   # 693.9 A
-Ibase_xfm1_bt = 500_000.0 / (math.sqrt(3) * 480.0)     # 601.4 A
-Ibase_xfm1_mt = 500_000.0 / (math.sqrt(3) * 4160.0)    # 69.4 A
-
-def t51(rele, i):
-    i = np.atleast_1d(np.asarray(i, dtype=float))
-    return np.array([rele.calcular_tiempo_trip(float(v)) for v in i])
-
-def t51s(rele, i):
-    return float(t51(rele, i)[0])
-
-# ================================================================
-# 5. VERIFICACION DE SELECTIVIDAD (CTI)
-# ================================================================
-def fmt(t):
-    return f"{t:.3f} s" if np.isfinite(t) else "no arranca"
-
 print("\nParejas de coordinacion (aguas abajo -> aguas arriba):")
-parejas = [
-    ("ITM-BT I/S @634", lambda: float(t_itm(icc3["634"])),
-     "Fusible 100T @633", lambda: float(t_fuseT(100.0, icc3["634"] / NXFM1)), 0.20),
-    ("Fusible 100T @633", lambda: float(t_fuseT(100.0, icc3["633"])),
-     "51 Troncal @632", lambda: t51s(r51_tr, icc3["633"]), 0.20),
-    ("51 Acometida @671", lambda: t51s(r51_671, icc3["671"]),
-     "51 Troncal @632", lambda: t51s(r51_tr, icc3["671"]), 0.30),
-    ("51 Troncal @671", lambda: t51s(r51_tr, icc3["671"]),
-     "51 Cabecera @650", lambda: t51s(r51_cab, icc3["671"]), 0.30),
-    ("51B Ramal @645", lambda: t51s(r51B_645, icc3["645"]),
-     "51 Cabecera @650", lambda: t51s(r51_cab, icc3["645"]), 0.30),
-    ("51 Cabecera @650", lambda: t51s(r51_cab, icc3["650"]),
-     "51 AT115 (referido)", lambda: t51s(r51_AT, icc3["650"] / (115.0 / 4.16)), 0.20),
-    ("51 Subt692 @675", lambda: t51s(r51_692, icc3["675"]),
-     "51 Troncal @632", lambda: t51s(r51_tr, icc3["675"]), 0.30),
-    ("Fusible 100T @646", lambda: float(t_fuseT(100.0, icc3["646"])),
-     "51B Ramal @645", lambda: t51s(r51B_645, icc3["646"]), 0.30),
-    ("CLF 100A @652 (aprox. T)", lambda: float(t_fuseT(100.0, icc3["652"])),
-     "51A Cab684", lambda: t51s(r51A_684, icc3["652"]), 0.20),
-    ("Fusible 65K @611", lambda: float(t_fuseK(65.0, icc3["611"])),
-     "51C Cab684", lambda: t51s(r51C_684, icc3["611"]), 0.20),
-]
-for dw, f_dw, up, f_up, cti_min in parejas:
-    try:
-        t_dw, t_up = f_dw(), f_up()
-        cti = t_up - t_dw
-        ok = bool(np.isfinite(cti) and cti >= cti_min)
-        print(f"  [{'OK' if ok else 'REVISAR'}] {dw} ({fmt(t_dw)}) < {up} ({fmt(t_up)}) "
-              f"CTI={fmt(cti)} (min {cti_min:.2f} s)")
-    except KeyError as e:
-        print(f"  [SIN DATO] {dw} vs {up}: falta Icc en barra {e}")
+verificar_cti([
+    ("ITM-BT I/S @634", float(curva_itm(icc3["634"])),
+     "Fusible 100T @633", float(curva_fusible(icc3["634"] / NXFM1, 100.0)), 0.20),
+    ("Fusible 100T @633", float(curva_fusible(icc3["633"], 100.0)),
+     "51 Troncal @632", curva_51(r51_tr, icc3["633"]), 0.20),
+    ("51 Acometida @671", curva_51(r51_671, icc3["671"]),
+     "51 Troncal @632", curva_51(r51_tr, icc3["671"]), 0.30),
+    ("51 Troncal @671", curva_51(r51_tr, icc3["671"]),
+     "51 Cabecera @650", curva_51(r51_cab, icc3["671"]), 0.30),
+    ("51B Ramal @645", curva_51(r51B_645, icc3["645"]),
+     "51 Cabecera @650", curva_51(r51_cab, icc3["645"]), 0.30),
+    ("51 Cabecera @650", curva_51(r51_cab, icc3["650"]),
+     "51 AT115 (referido)", curva_51(r51_AT, icc3["650"] / (115.0 / 4.16)), 0.20),
+    ("51 Subt692 @675", curva_51(r51_692, icc3["675"]),
+     "51 Troncal @632", curva_51(r51_tr, icc3["675"]), 0.30),
+    ("Fusible 100T @646", float(curva_fusible(icc3["646"], 100.0)),
+     "51B Ramal @645", curva_51(r51B_645, icc3["646"]), 0.30),
+    ("CLF 100A @652 (aprox. T)", float(curva_fusible(icc3["652"], 100.0)),
+     "51A Cab684", curva_51(r51A_684, icc3["652"]), 0.20),
+    ("Fusible 65K @611", float(curva_fusible(icc3["611"], 65.0, K=K_FUSIBLE_K, n=2.5, umbral_pu=1.35)),
+     "51C Cab684", curva_51(r51C_684, icc3["611"]), 0.20),
+])
 
 # ================================================================
-# 5B. COMPLEMENTARIAS: DISTANCIA 21, VOLTAJE 27/59, FRECUENCIA 81,
-#     TERMICA 49 Y MECANICAS 63 (Estudio_Protecciones_Complementarias.md)
+# 5. COMPLEMENTARIAS 21/27/59/81/49/63
 # ================================================================
 ANG_LINEA = math.radians(75.0)
-
-r21_Z1 = crear_proteccion("21_Z1", "21_L115_Z1",
-                          z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
-r21_Z2 = crear_proteccion("21_Z2", "21_L115_Z2",
-                          z_alcance_ohm=cmath.rect(0.96, ANG_LINEA), t_retardo=0.4)
-
+r21_Z1 = crear_proteccion("21_Z1", "21_L115_Z1", z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
+r21_Z2 = crear_proteccion("21_Z2", "21_L115_Z2", z_alcance_ohm=cmath.rect(0.96, ANG_LINEA), t_retardo=0.4)
 r59_N1 = crear_proteccion("59", "59_Sub_N1", V_pickup=1.10, t_retardo=10.0)
 r59_N2 = crear_proteccion("59", "59_Sub_N2", V_pickup=1.20, t_retardo=0.16)
 r27_N1 = crear_proteccion("27", "27_Mot671_N1", V_pickup=0.90, t_retardo=5.0)
 r27_N2 = crear_proteccion("27", "27_Aisl_N2", V_pickup=0.80, t_retardo=1.0)
-
 r81O = crear_proteccion("81O", "81O_Sub", f_pickup=60.5, t_retardo=2.0)
 r81U_1 = crear_proteccion("81U", "81U_Sub_N1", f_pickup=59.5, t_retardo=10.0)
 r81U_2 = crear_proteccion("81U", "81U_Ind671_N2", f_pickup=59.0, t_retardo=0.2)
 r81U_3 = crear_proteccion("81U", "81U_Total_N3", f_pickup=58.5, t_retardo=0.1)
-
 r49_sub = crear_proteccion("49", "49_TrafoSub", I_nominal=693.9)
 r63_buch = crear_proteccion("63", "63_Buchholz", t_retardo=0.0)
 r63_spr = crear_proteccion("63", "63_PresionSubita", t_retardo=0.0)
@@ -280,21 +175,15 @@ for r in (r21_Z1, r21_Z2, r59_N1, r59_N2, r27_N1, r27_N2,
     print(f"  {r.codigo_ansi:6s} {r.nombre:16s} param={r.param}")
 print("  Placa termica: Top-Oil 90/105 C | Hot-Spot 110/120 C (IEEE C57.91)")
 
-z_50 = cmath.rect(0.40, ANG_LINEA)   # falla al 50% de la linea 115 kV (0.40 ohm sec)
-z_80 = cmath.rect(0.80, ANG_LINEA)   # falla al 80% (fuera Z1, dentro Z2)
-z_ext = cmath.rect(2.00, ANG_LINEA)  # falla externa (fuera de ambas)
-t1, _, _, ez1 = r21_Z1.paso(z_50, 1.0 + 0j, 0.02)
+t1, _, _, ez1 = r21_Z1.paso(cmath.rect(0.40, ANG_LINEA), 1.0 + 0j, 0.02)
 print(f"\n21 Z1: falla 50% -> en_zona={ez1:.0f} trip={t1:.0f} (instantaneo)")
-r21_Z1b = crear_proteccion("21_Z1", "21_L115_Z1b",
-                           z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
-t1b, _, _, ez1b = r21_Z1b.paso(z_80, 1.0 + 0j, 0.02)
-t2, _, _, ez2 = r21_Z2.paso(z_80, 1.0 + 0j, 0.4)
+r21_Z1b = crear_proteccion("21_Z1", "21_L115_Z1b", z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
+t1b, _, _, ez1b = r21_Z1b.paso(cmath.rect(0.80, ANG_LINEA), 1.0 + 0j, 0.02)
+t2, _, _, ez2 = r21_Z2.paso(cmath.rect(0.80, ANG_LINEA), 1.0 + 0j, 0.4)
 print(f"21 Z1/Z2: falla 80% -> Z1 en_zona={ez1b:.0f} trip={t1b:.0f} | Z2 en_zona={ez2:.0f} trip={t2:.0f} (0.4 s)")
-r21_Z1c = crear_proteccion("21_Z1", "21_L115_Z1c",
-                           z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
-t1c, _, _, ez1c = r21_Z1c.paso(z_ext, 1.0 + 0j, 0.02)
+r21_Z1c = crear_proteccion("21_Z1", "21_L115_Z1c", z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
+t1c, _, _, ez1c = r21_Z1c.paso(cmath.rect(2.00, ANG_LINEA), 1.0 + 0j, 0.02)
 print(f"21 Z1: falla externa -> en_zona={ez1c:.0f} trip={t1c:.0f} (restringe)")
-
 print(f"27 N2 (0.75 pu, 1 s): trip={r27_N2.paso(0.75, 1.0)[0]:.0f}")
 print(f"59 N2 (1.25 pu, 0.16 s): trip={r59_N2.paso(1.25, 0.16)[0]:.0f}")
 print(f"81U N2 (58.8 Hz, 0.2 s): trip={r81U_2.paso(58.8, 0.2)[0]:.0f}")
@@ -302,85 +191,32 @@ print(f"81O (60.6 Hz, 2 s): trip={r81O.paso(60.6, 2.0)[0]:.0f}")
 print(f"63 Buchholz (senal=1): trip={r63_buch.paso(1.0, 0.01)[0]:.0f} (al 86 Lockout)")
 
 # ================================================================
-# 6. TCC INTERACTIVA UNIFICADA (PLOTLY) - REFERIDA A 4.16 KV
+# 6. TCC INTERACTIVA UNIFICADA (TODO REFERIDO A 4.16 KV)
 # ================================================================
-import plotly.graph_objects as go
-
 i_plot = np.logspace(1, 4.5, 1000)
-i_bt_ref = i_plot * NXFM1
-
-fig = go.Figure()
-
-def add_trace(fig, x, y, name, color, dash="solid", width=2.5, visible=True):
-    y = np.asarray(y, dtype=float)
-    mask = np.isfinite(y) & (y > 0.005)
-    fig.add_trace(go.Scatter(
-        x=x[mask], y=y[mask],
-        mode="lines",
-        name=name,
-        line=dict(color=color, dash=dash, width=width),
-        visible=visible,
-        hovertemplate="<b>%{name}</b><br>I: %{x:,.1f} A<br>t: %{y:.3f} s<extra></extra>",
-    ))
-
-add_trace(fig, i_plot, t51(r51_cab, i_plot), "51 Cabecera 650 (735A)", "black")
-add_trace(fig, i_plot, t51(r51_tr, i_plot), "51 Troncal 632-671 (580A)", "blue")
-add_trace(fig, i_plot, t51(r51NT, i_plot), "51NT Neutro Subestacion (140A)", "brown", dash="dash", width=2)
-
-add_trace(fig, i_plot, t51(r51_671, i_plot), "51 Acometida Ind. 671 (230A)", "red")
-add_trace(fig, i_plot, t51(r51B_645, i_plot), "51B Ramal Bifasico 645 (180A)", "green")
-add_trace(fig, i_plot, t51(r51_692, i_plot), "51 Subterraneo 692 (260A)", "purple", visible="legendonly")
-
-add_trace(fig, i_plot, t_fuseT(100.0, i_plot), "Fusible 100T (Trafo 633)", "orange", dash="dashdot")
-add_trace(fig, i_plot, t_fuseT(125.0, i_plot), "Fusible 125T (Ramal 645)", "magenta", dash="dashdot")
-add_trace(fig, i_plot, t_fuseT(100.0, i_plot), "Fusible 100T @646 (Carga B-C)", "cyan", dash="dashdot", visible="legendonly")
-add_trace(fig, i_plot, t_fuseK(65.0, i_plot), "Fusible 65K @611 (Cap. 100 kVAr)", "olive", dash="dashdot", visible="legendonly")
-
-add_trace(fig, i_plot, t_itm(i_bt_ref), "ITM 634 (BT ref. a 4.16kV)", "darkred", visible="legendonly")
-
-add_trace(fig, i_plot, t_dano_trafo(i_plot, Ibase_sub_mt), "Dano Trafo Principal 5MVA", "darkgray", visible="legendonly")
-add_trace(fig, i_plot, t_dano_trafo(i_plot, Ibase_xfm1_mt), "Dano Trafo XFM-1 500kVA", "darkgoldenrod", visible="legendonly")
-
-colores_icc = {"650": "black", "671": "blue", "645": "green", "633": "orange",
-               "634": "darkred", "675": "purple", "692": "teal",
-               "646": "cyan", "611": "olive", "652": "gray"}
-
-for barra, color in colores_icc.items():
-    if barra in icc3:
-        icc_val = icc3[barra] / NXFM1 if barra == "634" else icc3[barra]
-        label = f"Icc3 @ {barra} ({icc_val:.0f} A ref MT)" if barra == "634" else f"Icc3 @ {barra} ({icc_val:.0f} A)"
-        fig.add_trace(go.Scatter(
-            x=[icc_val, icc_val], y=[0.01, 2000],
-            mode="lines", name=label,
-            line=dict(color=color, dash="dot", width=1.5),
-            hoverinfo="name", visible="legendonly",
-        ))
-
-fig.add_trace(go.Scatter(
-    x=[833.0], y=[0.1], mode="markers", name="Inrush XFM-1 (0.1s)",
-    marker=dict(color="red", size=8),
-    hovertemplate="I: %{x} A<br>t: %{y} s<extra></extra>", visible="legendonly",
-))
-
-fig.update_layout(
-    title="<b>Coordinacion TCC Interactiva - IEEE 13 Nodos</b><br><sup>Todas las curvas referidas a base Primaria 4.16 kV</sup>",
-    xaxis_title="<b>Corriente Primaria a 4.16 kV (A)</b>",
-    yaxis_title="<b>Tiempo de Operacion (s)</b>",
-    xaxis=dict(type="log", range=[np.log10(15), np.log10(20000)], showgrid=True,
-               minor_ticks="inside", minor_showgrid=True, gridcolor="lightgray", minor_gridcolor="whitesmoke"),
-    yaxis=dict(type="log", range=[np.log10(0.01), np.log10(1000)], showgrid=True,
-               minor_ticks="inside", minor_showgrid=True, gridcolor="lightgray", minor_gridcolor="whitesmoke"),
-    plot_bgcolor="white",
-    hovermode="x unified",
-    legend=dict(
-        title="<b>Protecciones (Clic para aislar)</b>",
-        yanchor="top", y=0.99, xanchor="right", x=0.99,
-        bgcolor="rgba(255, 255, 255, 0.8)",
-        bordercolor="black", borderwidth=1,
-    ),
-    height=850,
+figura_tcc(
+    curvas=[
+        ("51 Cabecera 650 (735A)", i_plot, curva_51(r51_cab, i_plot), "black", "solid", 2.5, True),
+        ("51 Troncal 632-671 (580A)", i_plot, curva_51(r51_tr, i_plot), "blue", "solid", 2.5, True),
+        ("51NT Neutro Subestacion (140A)", i_plot, curva_51(r51NT, i_plot), "brown", "dash", 2.0, True),
+        ("51 Acometida Ind. 671 (230A)", i_plot, curva_51(r51_671, i_plot), "red", "solid", 2.5, True),
+        ("51B Ramal Bifasico 645 (180A)", i_plot, curva_51(r51B_645, i_plot), "green", "solid", 2.5, True),
+        ("51 Subterraneo 692 (260A)", i_plot, curva_51(r51_692, i_plot), "purple", "solid", 2.5, "legendonly"),
+        ("Fusible 100T (Trafo 633)", i_plot, curva_fusible(i_plot, 100.0), "orange", "dashdot", 2.5, True),
+        ("Fusible 125T (Ramal 645)", i_plot, curva_fusible(i_plot, 125.0), "magenta", "dashdot", 2.5, True),
+        ("Fusible 100T @646 (Carga B-C)", i_plot, curva_fusible(i_plot, 100.0), "cyan", "dashdot", 2.5, "legendonly"),
+        ("Fusible 65K @611 (Cap. 100 kVAr)", i_plot, curva_fusible(i_plot, 65.0, K=K_FUSIBLE_K, n=2.5, umbral_pu=1.35), "olive", "dashdot", 2.5, "legendonly"),
+        ("ITM 634 (BT ref. a 4.16kV)", i_plot, curva_itm(i_plot * NXFM1), "darkred", "solid", 2.5, "legendonly"),
+        ("Dano Trafo Principal 5MVA", i_plot, curva_dano(i_plot, Ibase_sub_mt), "darkgray", "solid", 2.5, "legendonly"),
+        ("Dano Trafo XFM-1 500kVA", i_plot, curva_dano(i_plot, Ibase_xfm1_mt), "darkgoldenrod", "solid", 2.5, "legendonly"),
+    ],
+    marcas=[(f"Icc3 @ {b} ({icc3[b] / NXFM1:.0f} A ref MT)" if b == "634" else f"Icc3 @ {b} ({icc3[b]:.0f} A)",
+             icc3[b] / NXFM1 if b == "634" else icc3[b], c)
+            for b, c in [("650", "black"), ("671", "blue"), ("645", "green"), ("633", "orange"),
+                         ("634", "darkred"), ("675", "purple"), ("692", "teal"),
+                         ("646", "cyan"), ("611", "olive"), ("652", "gray")] if b in icc3],
+    inrush=("Inrush XFM-1 (0.1s)", 833.0, 0.1),
+    titulo="Coordinacion TCC Interactiva - IEEE 13 Nodos",
+    subtitulo="Todas las curvas referidas a base Primaria 4.16 kV",
+    archivo=IMG / "tcc_interactiva_ieee13.html",
 )
-
-archivo_html = IMG / "tcc_interactiva_ieee13.html"
-fig.write_html(str(archivo_html), auto_open=False)
-print(f"\nTCC interactiva: {archivo_html}")
