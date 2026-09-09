@@ -193,9 +193,11 @@ def t_itm(i):
 
 NXFM1 = 4.16 / 0.48  # relacion XFM-1 para referir corrientes
 
-def t_dano_trafo(i, i_base, K=1250.0):
+def t_dano_trafo(i, i_base, K=1250.0, i_min_pu=2.0):
+    # IEEE C57.109: la curva I2t solo es valida de 2 pu en adelante;
+    # por debajo el trafo soporta la corriente en regimen continuo.
     i = np.asarray(i, dtype=float)
-    return np.where(i > 0, K / (i / i_base) ** 2, INF)
+    return np.where(i >= i_min_pu * i_base, K / (i / i_base) ** 2, INF)
 
 Ibase_sub_mt = 5_000_000.0 / (math.sqrt(3) * 4160.0)   # 693.9 A
 Ibase_xfm1_bt = 500_000.0 / (math.sqrt(3) * 480.0)     # 601.4 A
