@@ -25,7 +25,7 @@ Ibase_sub_mt = 5_000_000.0 / (math.sqrt(3) * 4160.0)
 Ibase_xfm1_mt = 500_000.0 / (math.sqrt(3) * 4160.0)
 Ibase_xfm1_bt = 500_000.0 / (math.sqrt(3) * 480.0)
 
-IR_BT, ISD_BT, II_BT = 708.05, 2832.2, 8330.0
+IR_BT, ISD_BT, II_BT = 680.0, 2720.0, 8000.0
 INRUSH_BT = 12.0 * Ibase_xfm1_bt
 print(f"\nITM 634: Ii={II_BT:.0f} A vs inrush 12xIn={INRUSH_BT:.0f} A "
       f"(margen {II_BT / INRUSH_BT:.2f}x, debe ser >1.0)")
