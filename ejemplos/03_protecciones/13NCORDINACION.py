@@ -10,7 +10,6 @@ import math
 from pathlib import Path
 
 import numpy as np
-import matplotlib.pyplot as plt
 from bloques_crysi.red import RedOpenDSS
 from bloques_crysi import crear_proteccion
 
@@ -248,61 +247,85 @@ for dw, f_dw, up, f_up, cti_min in parejas:
         print(f"  [SIN DATO] {dw} vs {up}: falta Icc en barra {e}")
 
 # ================================================================
-# 6. TCC MT 4.16 KV
+# 6. TCC INTERACTIVA UNIFICADA (PLOTLY) - REFERIDA A 4.16 KV
 # ================================================================
-i_mt = np.logspace(math.log10(30.0), math.log10(30000.0), 500)
+import plotly.graph_objects as go
 
-plt.figure(figsize=(10, 7))
-plt.loglog(i_mt, t51(r51_cab, i_mt), label="51 Cabecera 650 (735 A, EI, TDS 3.0)", color="black", linewidth=2)
-plt.loglog(i_mt, t51(r51_tr, i_mt), label="51 Troncal 632-671 (580 A, EI, TDS 2.5)", color="blue", linewidth=2)
-plt.loglog(i_mt, t51(r51_671, i_mt), label="51 Acometida 671 (230 A, SI, TDS 1.5)", color="red", linewidth=2)
-plt.loglog(i_mt, t51(r51B_645, i_mt), label="51B Ramal 645 (180 A, MI, TDS 2.0)", color="green", linewidth=2)
-plt.loglog(i_mt, t51(r51NT, i_mt), label="51NT Subestacion (140 A, SI, TDS 5.0)", color="brown", linestyle="--", linewidth=1.5)
-plt.loglog(i_mt, t_fuseT(100.0, i_mt), label="Fusible 100T @633", color="orange", linestyle="-.", linewidth=2)
-plt.loglog(i_mt, t_fuseT(125.0, i_mt), label="Fusible 125T @645", color="magenta", linestyle="-.", linewidth=1.5)
-plt.loglog(i_mt, t_fuseT(100.0, i_mt), label="Fusible 100T @646 (Carga B-C)", color="cyan", linestyle="-.", linewidth=1.5)
-plt.loglog(i_mt, t_fuseK(65.0, i_mt), label="Fusible 65K @611 (Cap. 100 kVAr)", color="olive", linestyle="-.", linewidth=1.5)
-plt.loglog(i_mt, t_dano_trafo(i_mt, Ibase_sub_mt), label="Dano trafo 5 MVA (C57.109 Cat. II)", color="darkred", linewidth=1.5)
-plt.plot(833.0, 0.1, "ro", label="Inrush XFM-1 (833 A, 0.1 s)")
+i_plot = np.logspace(1, 4.5, 1000)
+i_bt_ref = i_plot * NXFM1
 
-for b, c in (("650", "black"), ("671", "blue"), ("645", "green"), ("633", "orange"),
-             ("675", "purple"), ("646", "cyan"), ("611", "olive"), ("652", "gray")):
-    if b in icc3:
-        plt.axvline(x=icc3[b], color=c, linestyle=":", linewidth=1.2, label=f"Icc3@{b} ({icc3[b]:.0f} A)")
+fig = go.Figure()
 
-plt.xlabel("Corriente MT (A)", fontsize=11, fontweight="bold")
-plt.ylabel("Tiempo (s)", fontsize=11, fontweight="bold")
-plt.title("IEEE 13 nodos: coordinacion MT 4.16 kV", fontsize=12, fontweight="bold")
-plt.grid(True, which="both", ls="--", alpha=0.6)
-plt.legend(loc="upper right", frameon=True, fontsize=8)
-plt.xlim(30, 30000)
-plt.ylim(0.01, 2000)
-plt.tight_layout()
-plt.savefig(IMG / "tcc_13nodos_mt.png", dpi=150)
-plt.close()
-print(f"Figura MT: {IMG / 'tcc_13nodos_mt.png'}")
+def add_trace(fig, x, y, name, color, dash="solid", width=2.5, visible=True):
+    y = np.asarray(y, dtype=float)
+    mask = np.isfinite(y) & (y > 0.005)
+    fig.add_trace(go.Scatter(
+        x=x[mask], y=y[mask],
+        mode="lines",
+        name=name,
+        line=dict(color=color, dash=dash, width=width),
+        visible=visible,
+        hovertemplate="<b>%{name}</b><br>I: %{x:,.1f} A<br>t: %{y:.3f} s<extra></extra>",
+    ))
 
-# ================================================================
-# 7. TCC BT 480 V (XFM-1 + ITM)
-# ================================================================
-i_bt = np.logspace(math.log10(300.0), math.log10(60000.0), 500)
+add_trace(fig, i_plot, t51(r51_cab, i_plot), "51 Cabecera 650 (735A)", "black")
+add_trace(fig, i_plot, t51(r51_tr, i_plot), "51 Troncal 632-671 (580A)", "blue")
+add_trace(fig, i_plot, t51(r51NT, i_plot), "51NT Neutro Subestacion (140A)", "brown", dash="dash", width=2)
 
-plt.figure(figsize=(10, 7))
-plt.loglog(i_bt, t_itm(i_bt), label="ITM 634 (L 680 A / S 2720 A 0.2 s / I 6800 A)", color="red", linewidth=2)
-plt.loglog(i_bt, t_fuseT(100.0, i_bt / NXFM1), label="Fusible 100T referido a BT", color="orange", linestyle="-.", linewidth=2)
-plt.loglog(i_bt, t_dano_trafo(i_bt, Ibase_xfm1_bt), label="Dano XFM-1 500 kVA (C57.109 Cat. I)", color="darkred", linewidth=1.5)
-if "634" in icc3:
-    plt.axvline(x=icc3["634"], color="black", linestyle=":", linewidth=1.5, label=f"Icc3@634 ({icc3['634']:.0f} A)")
-plt.axhline(y=0.2, color="gray", linestyle=":", linewidth=1.0, label="Banda S/G 0.2 s")
+add_trace(fig, i_plot, t51(r51_671, i_plot), "51 Acometida Ind. 671 (230A)", "red")
+add_trace(fig, i_plot, t51(r51B_645, i_plot), "51B Ramal Bifasico 645 (180A)", "green")
+add_trace(fig, i_plot, t51(r51_692, i_plot), "51 Subterraneo 692 (260A)", "purple", visible="legendonly")
 
-plt.xlabel("Corriente BT (A)", fontsize=11, fontweight="bold")
-plt.ylabel("Tiempo (s)", fontsize=11, fontweight="bold")
-plt.title("IEEE 13 nodos: coordinacion BT 480 V (nodo 634)", fontsize=12, fontweight="bold")
-plt.grid(True, which="both", ls="--", alpha=0.6)
-plt.legend(loc="upper right", frameon=True, fontsize=9)
-plt.xlim(300, 60000)
-plt.ylim(0.01, 200)
-plt.tight_layout()
-plt.savefig(IMG / "tcc_13nodos_bt.png", dpi=150)
-plt.close()
-print(f"Figura BT: {IMG / 'tcc_13nodos_bt.png'}")
+add_trace(fig, i_plot, t_fuseT(100.0, i_plot), "Fusible 100T (Trafo 633)", "orange", dash="dashdot")
+add_trace(fig, i_plot, t_fuseT(125.0, i_plot), "Fusible 125T (Ramal 645)", "magenta", dash="dashdot")
+add_trace(fig, i_plot, t_fuseT(100.0, i_plot), "Fusible 100T @646 (Carga B-C)", "cyan", dash="dashdot", visible="legendonly")
+add_trace(fig, i_plot, t_fuseK(65.0, i_plot), "Fusible 65K @611 (Cap. 100 kVAr)", "olive", dash="dashdot", visible="legendonly")
+
+add_trace(fig, i_plot, t_itm(i_bt_ref), "ITM 634 (BT ref. a 4.16kV)", "darkred", visible="legendonly")
+
+add_trace(fig, i_plot, t_dano_trafo(i_plot, Ibase_sub_mt), "Dano Trafo Principal 5MVA", "darkgray", visible="legendonly")
+add_trace(fig, i_plot, t_dano_trafo(i_plot, Ibase_xfm1_mt), "Dano Trafo XFM-1 500kVA", "darkgoldenrod", visible="legendonly")
+
+colores_icc = {"650": "black", "671": "blue", "645": "green", "633": "orange",
+               "634": "darkred", "675": "purple", "692": "teal",
+               "646": "cyan", "611": "olive", "652": "gray"}
+
+for barra, color in colores_icc.items():
+    if barra in icc3:
+        icc_val = icc3[barra] / NXFM1 if barra == "634" else icc3[barra]
+        label = f"Icc3 @ {barra} ({icc_val:.0f} A ref MT)" if barra == "634" else f"Icc3 @ {barra} ({icc_val:.0f} A)"
+        fig.add_trace(go.Scatter(
+            x=[icc_val, icc_val], y=[0.01, 2000],
+            mode="lines", name=label,
+            line=dict(color=color, dash="dot", width=1.5),
+            hoverinfo="name", visible="legendonly",
+        ))
+
+fig.add_trace(go.Scatter(
+    x=[833.0], y=[0.1], mode="markers", name="Inrush XFM-1 (0.1s)",
+    marker=dict(color="red", size=8),
+    hovertemplate="I: %{x} A<br>t: %{y} s<extra></extra>", visible="legendonly",
+))
+
+fig.update_layout(
+    title="<b>Coordinacion TCC Interactiva - IEEE 13 Nodos</b><br><sup>Todas las curvas referidas a base Primaria 4.16 kV</sup>",
+    xaxis_title="<b>Corriente Primaria a 4.16 kV (A)</b>",
+    yaxis_title="<b>Tiempo de Operacion (s)</b>",
+    xaxis=dict(type="log", range=[np.log10(15), np.log10(20000)], showgrid=True,
+               minor_ticks="inside", minor_showgrid=True, gridcolor="lightgray", minor_gridcolor="whitesmoke"),
+    yaxis=dict(type="log", range=[np.log10(0.01), np.log10(1000)], showgrid=True,
+               minor_ticks="inside", minor_showgrid=True, gridcolor="lightgray", minor_gridcolor="whitesmoke"),
+    plot_bgcolor="white",
+    hovermode="x unified",
+    legend=dict(
+        title="<b>Protecciones (Clic para aislar)</b>",
+        yanchor="top", y=0.99, xanchor="right", x=0.99,
+        bgcolor="rgba(255, 255, 255, 0.8)",
+        bordercolor="black", borderwidth=1,
+    ),
+    height=850,
+)
+
+archivo_html = IMG / "tcc_interactiva_ieee13.html"
+fig.write_html(str(archivo_html), auto_open=False)
+print(f"\nTCC interactiva: {archivo_html}")
