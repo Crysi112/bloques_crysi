@@ -94,6 +94,11 @@ from .mna import (
     VSource, ISource, Switch,
 )
 from .subsistemas import crear_control_foc, crear_driver_modelo
+from .protecciones import (
+    Rele50, Rele51, Rele67, Rele49, Rele27, Rele59, Rele81, Rele24,
+    Rele87, Rele21, Disyuntor52, Rele86, Rele79, Rele25,
+    crear_proteccion
+)
 __version__ = "0.1.0"
 __all__ = [
     "Modelo", "Puerto", "Sensor",
@@ -128,5 +133,7 @@ __all__ = [
     "MaquinaSincrona", "MaquinaCorrienteContinua", "MaquinaDCImanesPermanentes",
     "MotorHardwareCH32",
     "crear_control_foc", "crear_driver_modelo",
+    "Rele50", "Rele51", "Rele67", "Rele49", "Rele27", "Rele59", "Rele81", "Rele24",
+    "Rele87", "Rele21", "Disyuntor52", "Rele86", "Rele79", "Rele25", "crear_proteccion",
     "__version__",
 ]
