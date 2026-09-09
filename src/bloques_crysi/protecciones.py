@@ -160,6 +160,32 @@ class Rele46(ReleProteccion):
         return trip, pickup, t_acum
 
 
+class Rele62(ReleProteccion):
+    op = ops.OP_RELE_62
+    def __init__(self, nombre: str, t_retardo: float = 300.0, umbral: float = 0.5):
+        super().__init__(nombre, "62", n_in=1, n_out=3, n_state=2)
+        self.t_retardo = max(0.0, float(t_retardo))
+        self.umbral = float(umbral)
+        self.param = [self.t_retardo, self.umbral]
+        self.estados_iniciales = [0.0, 0.0]
+
+    def paso(self, senal: float, dt: float) -> Tuple[float, float, float]:
+        pickup = 1.0 if senal >= self.umbral else 0.0
+        t_acum = self.estados_iniciales[0]
+        trip = self.estados_iniciales[1]
+
+        if pickup:
+            t_acum += dt
+            if t_acum >= self.t_retardo:
+                trip = 1.0
+        else:
+            t_acum = 0.0
+
+        self.estados_iniciales[0] = t_acum
+        self.estados_iniciales[1] = trip
+        return trip, pickup, t_acum
+
+
 class Rele49(ReleProteccion):
     op = ops.OP_RELE_49
     def __init__(self, nombre: str, I_nominal: float, tau_segundos: float = 600.0,
@@ -201,8 +227,8 @@ class Rele27(ReleProteccion):
 
 class Rele59(ReleProteccion):
     op = ops.OP_RELE_59
-    def __init__(self, nombre: str, V_pickup: float, t_retardo: float = 0.2):
-        super().__init__(nombre, "59", n_in=1, n_out=3, n_state=2)
+    def __init__(self, nombre: str, V_pickup: float, t_retardo: float = 0.2, sufijo: str = "P"):
+        super().__init__(nombre, f"59{sufijo}", n_in=1, n_out=3, n_state=2)
         self.V_pickup = float(V_pickup)
         self.t_retardo = float(t_retardo)
         self.param = [self.V_pickup, self.t_retardo]
@@ -332,6 +358,7 @@ class Disyuntor52(Bloque):
 
     def __init__(self, nombre: str, t_apertura_mecanica: float = 0.05, cerrado_inicial: bool = True):
         super().__init__(nombre)
+        self.codigo_ansi = "52"
         self.t_apertura = float(t_apertura_mecanica)
         self.param = [self.t_apertura]
         self.estados_iniciales = [1.0 if cerrado_inicial else 0.0, -1.0]
@@ -371,6 +398,7 @@ class Rele86(Bloque):
 
     def __init__(self, nombre: str):
         super().__init__(nombre)
+        self.codigo_ansi = "86"
         self.estados_iniciales = [0.0]
         self.entrada_trip = Puerto(self, "ent", 0, 1)
         self.entrada_reset = Puerto(self, "ent", 1, 1)
@@ -397,6 +425,7 @@ class Rele79(Bloque):
     def __init__(self, nombre: str, tiempos_muertos: Sequence[float] = (0.5, 15.0, 30.0),
                  t_reinicio_secuencia: float = 60.0):
         super().__init__(nombre)
+        self.codigo_ansi = "79"
         self.tiempos_muertos = list(tiempos_muertos)
         self.max_intentos = len(self.tiempos_muertos)
         self.t_reinicio = float(t_reinicio_secuencia)
@@ -413,6 +442,7 @@ class Rele25(Bloque):
     def __init__(self, nombre: str, delta_v_max: float = 0.10,
                  delta_f_max: float = 0.10, delta_ang_deg: float = 15.0):
         super().__init__(nombre)
+        self.codigo_ansi = "25"
         self.dv_max = float(delta_v_max)
         self.df_max = float(delta_f_max)
         self.dang_rad = math.radians(delta_ang_deg)
@@ -440,8 +470,9 @@ def crear_proteccion(codigo_ansi: str, nombre: str, **kwargs) -> Bloque:
                       t_retardo=kwargs.get("t_retardo", 0.5))
 
     elif cod.startswith("59"):
+        sufijo = cod[2:] or "P"
         return Rele59(nombre, V_pickup=kwargs.get("V_pickup", 1.15),
-                      t_retardo=kwargs.get("t_retardo", 0.2))
+                      t_retardo=kwargs.get("t_retardo", 0.2), sufijo=sufijo)
 
     elif cod.startswith("81"):
         modo = "O" if "O" in cod else "U"
@@ -482,6 +513,10 @@ def crear_proteccion(codigo_ansi: str, nombre: str, **kwargs) -> Bloque:
     elif cod.startswith("46"):
         return Rele46(nombre, I2_pickup=kwargs.get("I2_pickup", kwargs.get("I_pickup", 10.0)),
                       t_retardo=kwargs.get("t_retardo", 3.0))
+
+    elif cod.startswith("62"):
+        return Rele62(nombre, t_retardo=kwargs.get("t_retardo", 300.0),
+                      umbral=kwargs.get("umbral", 0.5))
 
     else:
         raise NotImplementedError(
