@@ -222,6 +222,9 @@ class BackendOpenDSS(BackendRed):
     @property
     def dss(self) -> py_dss_interface.DSS:
         return self._dss
+    def script(self, comandos) -> None:
+        for cmd in comandos:
+            self._dss.text(cmd)
     @property
     def v_base_kv_ll(self) -> float:
         return self._v_base_kv_ll

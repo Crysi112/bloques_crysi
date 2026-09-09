@@ -12,7 +12,7 @@ import numpy as np
 from bloques_crysi.red import RedOpenDSS
 from bloques_crysi import (
     crear_proteccion, curva_51, curva_fusible, curva_itm, curva_dano,
-    icc_faultstudy, verificar_cti, figura_tcc,
+    icc_faultstudy, verificar_cti, figura_tcc, tabla_ajustes, marcas_icc,
 )
 from bloques_crysi.tcc import K_FUSIBLE_K
 
@@ -29,36 +29,31 @@ Ibase_xfm1_mt = 500_000.0 / (math.sqrt(3) * 4160.0)
 # ================================================================
 red = RedOpenDSS(nombre="IEEE_13_Completo", v_slack_kv_ll=115.0, f_hz=60.0)
 backend = red.compilar()
-dss = backend.dss.text
 
-bus_fuente = dss("? Vsource.source.bus1").strip() or "sourcebus"
-dss("Edit Vsource.source basekv=115.0 pu=1.0 Isc3=10000 Isc1=10000")
-dss("New Transformer.Sub Phases=3 Windings=2 XHL=8")
-dss(f"~ wdg=1 bus={bus_fuente} conn=Delta kv=115 kva=5000 %r=1")
-dss("~ wdg=2 bus=650 conn=Wye kv=4.16 kva=5000 %r=1")
-dss("New Transformer.XFM1 Phases=3 Windings=2 XHL=2 wdg=1 bus=633 conn=Wye kv=4.16 kva=500 wdg=2 bus=634 conn=Wye kv=0.48 kva=500")
-
-for lc in [
-    "601 nphases=3 units=mi rmatrix=[0.3465 | 0.1560 0.3375 | 0.1580 0.1535 0.3414] xmatrix=[1.0179 | 0.5017 1.0478 | 0.4236 0.3849 1.0348]",
-    "602 nphases=3 units=mi rmatrix=[0.7526 | 0.1580 0.7475 | 0.1560 0.1535 0.7436] xmatrix=[1.1814 | 0.4236 1.1983 | 0.5017 0.3849 1.2112]",
-    "603 nphases=2 units=mi rmatrix=[1.3294 | 0.2066 1.3238] xmatrix=[1.3471 | 0.4591 1.3569]",
-    "604 nphases=2 units=mi rmatrix=[1.3294 | 0.2066 1.3238] xmatrix=[1.3471 | 0.4591 1.3569]",
-    "605 nphases=1 units=mi rmatrix=[1.3294] xmatrix=[1.3471]",
-    "606 nphases=3 units=mi rmatrix=[0.1600 | 0.0500 0.1600 | 0.0500 0.0500 0.1600] xmatrix=[0.1200 | 0.0400 0.1200 | 0.0400 0.0400 0.1200]",
-    "607 nphases=1 units=mi rmatrix=[0.3500] xmatrix=[0.1000]",
-]:
-    dss(f"New Linecode.{lc}")
-
-for b1, b2, lon, ph, lc in [
-    ("650", "632", 2000, 3, 601), ("632", "671", 2000, 3, 601),
-    ("632", "633", 500, 3, 602), ("632.2.3", "645.2.3", 500, 2, 603),
-    ("645.2.3", "646.2.3", 300, 2, 603), ("671.1.3", "684.1.3", 300, 2, 604),
-    ("684.3", "611.3", 300, 1, 605), ("684.1", "652.1", 800, 1, 607),
-    ("671", "692", 100, 3, 601), ("692", "675", 500, 3, 606),
-]:
-    dss(f"New Line.L_{b1}_{b2} bus1={b1} bus2={b2} length={lon} units=ft phases={ph} linecode={lc}")
-
-for cmd in [
+bus_fuente = backend.dss.text("? Vsource.source.bus1").strip() or "sourcebus"
+backend.script([
+    "Edit Vsource.source basekv=115.0 pu=1.0 Isc3=10000 Isc1=10000",
+    "New Transformer.Sub Phases=3 Windings=2 XHL=8",
+    f"~ wdg=1 bus={bus_fuente} conn=Delta kv=115 kva=5000 %r=1",
+    "~ wdg=2 bus=650 conn=Wye kv=4.16 kva=5000 %r=1",
+    "New Transformer.XFM1 Phases=3 Windings=2 XHL=2 wdg=1 bus=633 conn=Wye kv=4.16 kva=500 wdg=2 bus=634 conn=Wye kv=0.48 kva=500",
+    "New Linecode.601 nphases=3 units=mi rmatrix=[0.3465 | 0.1560 0.3375 | 0.1580 0.1535 0.3414] xmatrix=[1.0179 | 0.5017 1.0478 | 0.4236 0.3849 1.0348]",
+    "New Linecode.602 nphases=3 units=mi rmatrix=[0.7526 | 0.1580 0.7475 | 0.1560 0.1535 0.7436] xmatrix=[1.1814 | 0.4236 1.1983 | 0.5017 0.3849 1.2112]",
+    "New Linecode.603 nphases=2 units=mi rmatrix=[1.3294 | 0.2066 1.3238] xmatrix=[1.3471 | 0.4591 1.3569]",
+    "New Linecode.604 nphases=2 units=mi rmatrix=[1.3294 | 0.2066 1.3238] xmatrix=[1.3471 | 0.4591 1.3569]",
+    "New Linecode.605 nphases=1 units=mi rmatrix=[1.3294] xmatrix=[1.3471]",
+    "New Linecode.606 nphases=3 units=mi rmatrix=[0.1600 | 0.0500 0.1600 | 0.0500 0.0500 0.1600] xmatrix=[0.1200 | 0.0400 0.1200 | 0.0400 0.0400 0.1200]",
+    "New Linecode.607 nphases=1 units=mi rmatrix=[0.3500] xmatrix=[0.1000]",
+    "New Line.L_650_632 bus1=650 bus2=632 length=2000 units=ft phases=3 linecode=601",
+    "New Line.L_632_671 bus1=632 bus2=671 length=2000 units=ft phases=3 linecode=601",
+    "New Line.L_632_633 bus1=632 bus2=633 length=500 units=ft phases=3 linecode=602",
+    "New Line.L_632_645 bus1=632.2.3 bus2=645.2.3 length=500 units=ft phases=2 linecode=603",
+    "New Line.L_645_646 bus1=645.2.3 bus2=646.2.3 length=300 units=ft phases=2 linecode=603",
+    "New Line.L_671_684 bus1=671.1.3 bus2=684.1.3 length=300 units=ft phases=2 linecode=604",
+    "New Line.L_684_611 bus1=684.3 bus2=611.3 length=300 units=ft phases=1 linecode=605",
+    "New Line.L_684_652 bus1=684.1 bus2=652.1 length=800 units=ft phases=1 linecode=607",
+    "New Line.L_671_692 bus1=671 bus2=692 length=100 units=ft phases=3 linecode=601",
+    "New Line.L_692_675 bus1=692 bus2=675 length=500 units=ft phases=3 linecode=606",
     "New Load.Load_671 bus1=671 phases=3 kv=4.16 kw=1155 kvar=660 model=1 conn=Delta",
     "New Load.Load_634 bus1=634 phases=3 kv=0.48 kw=400 kvar=290 model=1 conn=Wye",
     "New Load.L_645B bus1=645.2 phases=1 kv=2.4 kw=170 kvar=125 model=1",
@@ -72,8 +67,7 @@ for cmd in [
     "New Capacitor.CAP611 bus1=611.3 phases=1 kv=2.4 kvar=100",
     "New Load.L_652 bus1=652.1 phases=1 kv=2.4 kw=128 kvar=86 model=1",
     "Set VoltageBases=[115, 4.16, 0.48]", "CalcVoltageBases", "Solve",
-]:
-    dss(cmd)
+])
 
 # ================================================================
 # 2. CORTOCIRCUITO POR BARRA
@@ -113,11 +107,10 @@ r50_LTC = crear_proteccion("50", "50_Lockout_Regulador", I_pickup=1400.0)
 
 print("\nZona subterranea 692/675/652: 79 BLOQUEADO (sin recierre en XLPE)")
 print("\nAjustes instanciados:")
-for r in (r87_sub, r51_AT, r51NT, r51_cab, r51N_cab, r51_tr, r51N_tr,
-          r51_671, r46_671, r51B_645, r51C_645, r51N_645,
-          r51_692, r51N_692, r51A_684, r51C_684, r51N_684,
-          r59N_675, r62_675, r50_LTC):
-    print(f"  {r.codigo_ansi:6s} {r.nombre:20s} param={r.param}")
+tabla_ajustes((r87_sub, r51_AT, r51NT, r51_cab, r51N_cab, r51_tr, r51N_tr,
+               r51_671, r46_671, r51B_645, r51C_645, r51N_645,
+               r51_692, r51N_692, r51A_684, r51C_684, r51N_684,
+               r59N_675, r62_675, r50_LTC))
 
 ok_pas, id_pas, ir_pas = r87_sub.evaluar_disparo(2.51 + 0j, -2.51 + 0j)
 ok_int, id_int, ir_int = r87_sub.evaluar_disparo(2.51 + 0j, 2.51 + 0j)
@@ -170,9 +163,8 @@ r63_buch = crear_proteccion("63", "63_Buchholz", t_retardo=0.0)
 r63_spr = crear_proteccion("63", "63_PresionSubita", t_retardo=0.0)
 
 print("\nComplementarias (V/f/Z/termicas):")
-for r in (r21_Z1, r21_Z2, r59_N1, r59_N2, r27_N1, r27_N2,
-          r81O, r81U_1, r81U_2, r81U_3, r49_sub, r63_buch, r63_spr):
-    print(f"  {r.codigo_ansi:6s} {r.nombre:16s} param={r.param}")
+tabla_ajustes((r21_Z1, r21_Z2, r59_N1, r59_N2, r27_N1, r27_N2,
+               r81O, r81U_1, r81U_2, r81U_3, r49_sub, r63_buch, r63_spr))
 print("  Placa termica: Top-Oil 90/105 C | Hot-Spot 110/120 C (IEEE C57.91)")
 
 t1, _, _, ez1 = r21_Z1.paso(cmath.rect(0.40, ANG_LINEA), 1.0 + 0j, 0.02)
@@ -210,11 +202,9 @@ figura_tcc(
         ("Dano Trafo Principal 5MVA", i_plot, curva_dano(i_plot, Ibase_sub_mt), "darkgray", "solid", 2.5, "legendonly"),
         ("Dano Trafo XFM-1 500kVA", i_plot, curva_dano(i_plot, Ibase_xfm1_mt), "darkgoldenrod", "solid", 2.5, "legendonly"),
     ],
-    marcas=[(f"Icc3 @ {b} ({icc3[b] / NXFM1:.0f} A ref MT)" if b == "634" else f"Icc3 @ {b} ({icc3[b]:.0f} A)",
-             icc3[b] / NXFM1 if b == "634" else icc3[b], c)
-            for b, c in [("650", "black"), ("671", "blue"), ("645", "green"), ("633", "orange"),
-                         ("634", "darkred"), ("675", "purple"), ("692", "teal"),
-                         ("646", "cyan"), ("611", "olive"), ("652", "gray")] if b in icc3],
+    marcas=marcas_icc(icc3, {"650": "black", "671": "blue", "645": "green", "633": "orange",
+                             "634": "darkred", "675": "purple", "692": "teal",
+                             "646": "cyan", "611": "olive", "652": "gray"}, {"634": NXFM1}),
     inrush=("Inrush XFM-1 (0.1s)", 833.0, 0.1),
     titulo="Coordinacion TCC Interactiva - IEEE 13 Nodos",
     subtitulo="Todas las curvas referidas a base Primaria 4.16 kV",

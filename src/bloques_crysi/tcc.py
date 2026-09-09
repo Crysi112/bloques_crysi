@@ -74,6 +74,22 @@ def verificar_cti(filas: Sequence[Tuple[str, float, str, float, float]]) -> bool
     return ok_all
 
 
+def tabla_ajustes(reles) -> None:
+    for r in reles:
+        print(f"  {r.codigo_ansi:6s} {r.nombre:20s} param={r.param}")
+
+
+def marcas_icc(icc3: Dict[str, float], colores: Dict[str, str], referral=None):
+    referral = referral or {}
+    marcas = []
+    for b, c in colores.items():
+        if b in icc3:
+            v = icc3[b] / referral[b] if b in referral else icc3[b]
+            suf = " ref MT" if b in referral else ""
+            marcas.append((f"Icc3 @ {b} ({v:.0f} A{suf})", v, c))
+    return marcas
+
+
 def figura_tcc(curvas, marcas=(), inrush=None, titulo="Coordinacion TCC",
                subtitulo="", archivo=None, xr=(15.0, 20000.0), yr=(0.01, 1000.0)):
     import plotly.graph_objects as go
