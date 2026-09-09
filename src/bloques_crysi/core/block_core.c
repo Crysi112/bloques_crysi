@@ -1101,6 +1101,74 @@ static void update_relay(BloqueC *bl, ModeloC *m){
   bl->state[0]= y;
   m->sig[bl->out_idx[0]]= y;
 }
+static void update_rele50(BloqueC *bl, ModeloC *m){
+  double h = m->dt;
+  double Ipu = bl->param[0], tdel = bl->param[1];
+  double u = (bl->n_in>=1 && bl->in_idx[0]>=0)? m->sig[bl->in_idx[0]]:0.0;
+  double pickup = (fabs(u) >= Ipu)? 1.0:0.0;
+  double tac = bl->state[0], trip = bl->state[1];
+  if (pickup > 0.5){ tac += h; if (tac >= tdel) trip = 1.0; }
+  else tac = 0.0;
+  bl->state[0]= tac; bl->state[1]= trip;
+  m->sig[bl->out_idx[0]]= trip;
+  if (bl->n_out>=2) m->sig[bl->out_idx[1]]= pickup;
+  if (bl->n_out>=3) m->sig[bl->out_idx[2]]= tac;
+}
+static void update_rele51(BloqueC *bl, ModeloC *m){
+  double h = m->dt;
+  double Ipu=bl->param[0], tds=bl->param[1], A=bl->param[2], B=bl->param[3], p=bl->param[4];
+  int disco_on = bl->param[5] > 0.5;
+  double u = (bl->n_in>=1 && bl->in_idx[0]>=0)? m->sig[bl->in_idx[0]]:0.0;
+  double imag = fabs(u);
+  double pickup = (imag >= Ipu)? 1.0:0.0;
+  double disco = bl->state[0], trip = bl->state[1];
+  if (pickup > 0.5){
+    double mm = imag/Ipu;
+    double ttrip = 1.0/0.0;
+    if (mm > 1.001){
+      double den = pow(mm,p)-1.0;
+      if (den > 1e-12) ttrip = tds*(A/den + B);
+    }
+    double tref = (ttrip < 1e-4)? 1e-4 : ttrip;
+    disco += h/tref;
+    if (disco >= 1.0){ disco = 1.0; trip = 1.0; }
+  } else {
+    if (disco_on){ disco -= h/(tds*5.0); if (disco < 0.0) disco = 0.0; }
+    else disco = 0.0;
+  }
+  bl->state[0]= disco; bl->state[1]= trip;
+  m->sig[bl->out_idx[0]]= trip;
+  if (bl->n_out>=2) m->sig[bl->out_idx[1]]= pickup;
+  if (bl->n_out>=3) m->sig[bl->out_idx[2]]= disco;
+}
+static void update_rele86(BloqueC *bl, ModeloC *m){
+  double tr = (bl->n_in>=1 && bl->in_idx[0]>=0)? m->sig[bl->in_idx[0]]:0.0;
+  double rs = (bl->n_in>=2 && bl->in_idx[1]>=0)? m->sig[bl->in_idx[1]]:0.0;
+  double b = bl->state[0];
+  if (tr > 0.5) b = 1.0;
+  else if (rs > 0.5) b = 0.0;
+  bl->state[0]= b;
+  m->sig[bl->out_idx[0]]= b;
+  if (bl->n_out>=2) m->sig[bl->out_idx[1]]= 1.0-b;
+}
+static void update_disyuntor52(BloqueC *bl, ModeloC *m){
+  double h = m->dt;
+  double tap = bl->param[0];
+  double ord = (bl->n_in>=1 && bl->in_idx[0]>=0)? m->sig[bl->in_idx[0]]:0.0;
+  double ic = (bl->n_in>=2 && bl->in_idx[1]>=0)? m->sig[bl->in_idx[1]]:0.0;
+  double est = bl->state[0], tim = bl->state[1];
+  if (est > 0.5){
+    if (ord > 0.5 && tim < 0.0) tim = 0.0;
+    if (tim >= 0.0){
+      tim += h;
+      if (tim >= tap && fabs(ic) < 1e-1){ est = 0.0; tim = -1.0; }
+    }
+  }
+  bl->state[0]= est; bl->state[1]= tim;
+  m->sig[bl->out_idx[0]]= est;
+  if (bl->n_out>=2) m->sig[bl->out_idx[1]]= est;
+  if (bl->n_out>=3) m->sig[bl->out_idx[2]]= 1.0-est;
+}
 static void update_diodo(BloqueC *bl, ModeloC *m){
   double va = (bl->n_in>=1 && bl->in_idx[0]>=0)? m->sig[bl->in_idx[0]]:0.0;
   double vc = (bl->n_in>=2 && bl->in_idx[1]>=0)? m->sig[bl->in_idx[1]]:0.0;
@@ -2110,6 +2178,18 @@ static void setup_block(BloqueC *bl, ModeloC *m){
       break;
     case OP_RELAY:
       bl->update = update_relay;
+      break;
+    case OP_RELE_50:
+      bl->update = update_rele50;
+      break;
+    case OP_RELE_51:
+      bl->update = update_rele51;
+      break;
+    case OP_RELE_86:
+      bl->update = update_rele86;
+      break;
+    case OP_DISYUNTOR_52:
+      bl->update = update_disyuntor52;
       break;
     case OP_DIODO:
       bl->update = update_diodo;

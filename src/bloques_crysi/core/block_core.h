@@ -84,6 +84,10 @@ enum {
   OP_MUTUAL_INDUCTOR = 75,
   OP_VCVS = 76,
   OP_VCCS = 77,
+  OP_RELE_50 = 78,
+  OP_RELE_51 = 79,
+  OP_DISYUNTOR_52 = 88,
+  OP_RELE_86 = 89,
 };
 typedef struct ModeloC ModeloC;
 typedef struct BloqueC BloqueC;
