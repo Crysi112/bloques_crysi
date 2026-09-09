@@ -89,6 +89,7 @@ OP_DISYUNTOR_52 = 88
 OP_RELE_86 = 89
 OP_RELE_79 = 90
 OP_RELE_25 = 91
+OP_RELE_46 = 92
 ES_ESTATICO = {
     OP_GAIN,
     OP_SUM,
@@ -128,20 +129,6 @@ ES_ESTATICO = {
     OP_CARGA_PQ_1F,
     OP_VCVS,
     OP_VCCS,
-    OP_RELE_50,
-    OP_RELE_51,
-    OP_RELE_67,
-    OP_RELE_49,
-    OP_RELE_27,
-    OP_RELE_59,
-    OP_RELE_81,
-    OP_RELE_24,
-    OP_RELE_87,
-    OP_RELE_21,
-    OP_DISYUNTOR_52,
-    OP_RELE_86,
-    OP_RELE_79,
-    OP_RELE_25,
 }
 ES_DINAMICO = {
     OP_INTEGRADOR,
@@ -189,4 +176,5 @@ ES_DINAMICO = {
     OP_RELE_86,
     OP_RELE_79,
     OP_RELE_25,
+    OP_RELE_46,
 }

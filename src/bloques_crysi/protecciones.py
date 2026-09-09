@@ -131,6 +131,35 @@ class Rele67(ReleProteccion):
         return abs(delta) <= self.arco_rad
 
 
+class Rele46(ReleProteccion):
+    op = ops.OP_RELE_46
+    def __init__(self, nombre: str, I2_pickup: float, t_retardo: float = 3.0):
+        super().__init__(nombre, "46", n_in=1, n_out=3, n_state=2)
+        if I2_pickup <= 0:
+            raise ValueError("I2_pickup debe ser > 0")
+        self.I2_pickup = float(I2_pickup)
+        self.t_retardo = max(0.0, float(t_retardo))
+        self.param = [self.I2_pickup, self.t_retardo]
+        self.estados_iniciales = [0.0, 0.0]
+
+    def paso(self, i2_medida: float, dt: float) -> Tuple[float, float, float]:
+        i_mag = abs(i2_medida)
+        pickup = 1.0 if i_mag >= self.I2_pickup else 0.0
+        t_acum = self.estados_iniciales[0]
+        trip = self.estados_iniciales[1]
+
+        if pickup:
+            t_acum += dt
+            if t_acum >= self.t_retardo:
+                trip = 1.0
+        else:
+            t_acum = 0.0
+
+        self.estados_iniciales[0] = t_acum
+        self.estados_iniciales[1] = trip
+        return trip, pickup, t_acum
+
+
 class Rele49(ReleProteccion):
     op = ops.OP_RELE_49
     def __init__(self, nombre: str, I_nominal: float, tau_segundos: float = 600.0,
@@ -449,6 +478,10 @@ def crear_proteccion(codigo_ansi: str, nombre: str, **kwargs) -> Bloque:
 
     elif cod.startswith("49"):
         return Rele49(nombre, I_nominal=kwargs.get("I_nominal", 100.0))
+
+    elif cod.startswith("46"):
+        return Rele46(nombre, I2_pickup=kwargs.get("I2_pickup", kwargs.get("I_pickup", 10.0)),
+                      t_retardo=kwargs.get("t_retardo", 3.0))
 
     else:
         raise NotImplementedError(
