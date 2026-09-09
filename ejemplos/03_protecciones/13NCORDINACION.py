@@ -6,6 +6,7 @@ XFM-1 (fusible 100T + ITM LSI+G en BT) y acometida industrial 671 (51+46).
 """
 
 import csv
+import cmath
 import math
 from pathlib import Path
 
@@ -245,6 +246,58 @@ for dw, f_dw, up, f_up, cti_min in parejas:
               f"CTI={fmt(cti)} (min {cti_min:.2f} s)")
     except KeyError as e:
         print(f"  [SIN DATO] {dw} vs {up}: falta Icc en barra {e}")
+
+# ================================================================
+# 5B. COMPLEMENTARIAS: DISTANCIA 21, VOLTAJE 27/59, FRECUENCIA 81,
+#     TERMICA 49 Y MECANICAS 63 (Estudio_Protecciones_Complementarias.md)
+# ================================================================
+ANG_LINEA = math.radians(75.0)
+
+r21_Z1 = crear_proteccion("21_Z1", "21_L115_Z1",
+                          z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
+r21_Z2 = crear_proteccion("21_Z2", "21_L115_Z2",
+                          z_alcance_ohm=cmath.rect(0.96, ANG_LINEA), t_retardo=0.4)
+
+r59_N1 = crear_proteccion("59", "59_Sub_N1", V_pickup=1.10, t_retardo=10.0)
+r59_N2 = crear_proteccion("59", "59_Sub_N2", V_pickup=1.20, t_retardo=0.16)
+r27_N1 = crear_proteccion("27", "27_Mot671_N1", V_pickup=0.90, t_retardo=5.0)
+r27_N2 = crear_proteccion("27", "27_Aisl_N2", V_pickup=0.80, t_retardo=1.0)
+
+r81O = crear_proteccion("81O", "81O_Sub", f_pickup=60.5, t_retardo=2.0)
+r81U_1 = crear_proteccion("81U", "81U_Sub_N1", f_pickup=59.5, t_retardo=10.0)
+r81U_2 = crear_proteccion("81U", "81U_Ind671_N2", f_pickup=59.0, t_retardo=0.2)
+r81U_3 = crear_proteccion("81U", "81U_Total_N3", f_pickup=58.5, t_retardo=0.1)
+
+r49_sub = crear_proteccion("49", "49_TrafoSub", I_nominal=693.9)
+r63_buch = crear_proteccion("63", "63_Buchholz", t_retardo=0.0)
+r63_spr = crear_proteccion("63", "63_PresionSubita", t_retardo=0.0)
+
+print("\nComplementarias (V/f/Z/termicas):")
+for r in (r21_Z1, r21_Z2, r59_N1, r59_N2, r27_N1, r27_N2,
+          r81O, r81U_1, r81U_2, r81U_3, r49_sub, r63_buch, r63_spr):
+    print(f"  {r.codigo_ansi:6s} {r.nombre:16s} param={r.param}")
+print("  Placa termica: Top-Oil 90/105 C | Hot-Spot 110/120 C (IEEE C57.91)")
+
+z_50 = cmath.rect(0.40, ANG_LINEA)   # falla al 50% de la linea 115 kV (0.40 ohm sec)
+z_80 = cmath.rect(0.80, ANG_LINEA)   # falla al 80% (fuera Z1, dentro Z2)
+z_ext = cmath.rect(2.00, ANG_LINEA)  # falla externa (fuera de ambas)
+t1, _, _, ez1 = r21_Z1.paso(z_50, 1.0 + 0j, 0.02)
+print(f"\n21 Z1: falla 50% -> en_zona={ez1:.0f} trip={t1:.0f} (instantaneo)")
+r21_Z1b = crear_proteccion("21_Z1", "21_L115_Z1b",
+                           z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
+t1b, _, _, ez1b = r21_Z1b.paso(z_80, 1.0 + 0j, 0.02)
+t2, _, _, ez2 = r21_Z2.paso(z_80, 1.0 + 0j, 0.4)
+print(f"21 Z1/Z2: falla 80% -> Z1 en_zona={ez1b:.0f} trip={t1b:.0f} | Z2 en_zona={ez2:.0f} trip={t2:.0f} (0.4 s)")
+r21_Z1c = crear_proteccion("21_Z1", "21_L115_Z1c",
+                           z_alcance_ohm=cmath.rect(0.64, ANG_LINEA), t_retardo=0.0)
+t1c, _, _, ez1c = r21_Z1c.paso(z_ext, 1.0 + 0j, 0.02)
+print(f"21 Z1: falla externa -> en_zona={ez1c:.0f} trip={t1c:.0f} (restringe)")
+
+print(f"27 N2 (0.75 pu, 1 s): trip={r27_N2.paso(0.75, 1.0)[0]:.0f}")
+print(f"59 N2 (1.25 pu, 0.16 s): trip={r59_N2.paso(1.25, 0.16)[0]:.0f}")
+print(f"81U N2 (58.8 Hz, 0.2 s): trip={r81U_2.paso(58.8, 0.2)[0]:.0f}")
+print(f"81O (60.6 Hz, 2 s): trip={r81O.paso(60.6, 2.0)[0]:.0f}")
+print(f"63 Buchholz (senal=1): trip={r63_buch.paso(1.0, 0.01)[0]:.0f} (al 86 Lockout)")
 
 # ================================================================
 # 6. TCC INTERACTIVA UNIFICADA (PLOTLY) - REFERIDA A 4.16 KV

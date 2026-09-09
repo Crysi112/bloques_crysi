@@ -186,6 +186,32 @@ class Rele62(ReleProteccion):
         return trip, pickup, t_acum
 
 
+class Rele63(ReleProteccion):
+    op = ops.OP_RELE_63
+    def __init__(self, nombre: str, umbral: float = 0.5, t_retardo: float = 0.0):
+        super().__init__(nombre, "63", n_in=1, n_out=3, n_state=2)
+        self.umbral = float(umbral)
+        self.t_retardo = max(0.0, float(t_retardo))
+        self.param = [self.umbral, self.t_retardo]
+        self.estados_iniciales = [0.0, 0.0]
+
+    def paso(self, senal: float, dt: float) -> Tuple[float, float, float]:
+        pickup = 1.0 if senal >= self.umbral else 0.0
+        t_acum = self.estados_iniciales[0]
+        trip = self.estados_iniciales[1]
+
+        if pickup:
+            t_acum += dt
+            if t_acum >= self.t_retardo:
+                trip = 1.0
+        else:
+            t_acum = 0.0
+
+        self.estados_iniciales[0] = t_acum
+        self.estados_iniciales[1] = trip
+        return trip, pickup, t_acum
+
+
 class Rele49(ReleProteccion):
     op = ops.OP_RELE_49
     def __init__(self, nombre: str, I_nominal: float, tau_segundos: float = 600.0,
@@ -517,6 +543,10 @@ def crear_proteccion(codigo_ansi: str, nombre: str, **kwargs) -> Bloque:
     elif cod.startswith("62"):
         return Rele62(nombre, t_retardo=kwargs.get("t_retardo", 300.0),
                       umbral=kwargs.get("umbral", 0.5))
+
+    elif cod.startswith("63"):
+        return Rele63(nombre, umbral=kwargs.get("umbral", 0.5),
+                      t_retardo=kwargs.get("t_retardo", 0.0))
 
     else:
         raise NotImplementedError(
