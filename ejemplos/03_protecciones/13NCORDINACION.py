@@ -149,6 +149,8 @@ verificar_cti([
      "51A Cab684", curva_51(r51A_684, icc3["652"]), 0.20),
     ("Fusible 65K @611", float(curva_fusible(icc3["611"], 65.0, K=K_FUSIBLE_K, n=2.5, umbral_pu=1.35)),
      "51C Cab684", curva_51(r51C_684, icc3["611"]), 0.20),
+    ("Fusible 125T lateral @684", float(curva_fusible(icc3["611"], 125.0)),
+     "51C Cab684", curva_51(r51C_684, icc3["611"]), 0.20),
 ])
 
 # ================================================================
@@ -202,7 +204,7 @@ figura_tcc(
         ("51B Ramal Bifasico 645 (180A)", i_plot, curva_51(r51B_645, i_plot), "green", "solid", 2.5, True),
         ("51 Subterraneo 692 (260A)", i_plot, curva_51(r51_692, i_plot), "purple", "solid", 2.5, "legendonly"),
         ("Fusible 100T (Trafo 633)", i_plot, curva_fusible(i_plot, 100.0), "orange", "dashdot", 2.5, True),
-        ("Fusible 125T (Ramal 645)", i_plot, curva_fusible(i_plot, 125.0), "magenta", "dashdot", 2.5, True),
+        ("Fusible 125T (Ramal 645 y Lateral 684)", i_plot, curva_fusible(i_plot, 125.0), "magenta", "dashdot", 2.5, True),
         ("Fusible 100T @646 (Carga B-C)", i_plot, curva_fusible(i_plot, 100.0), "cyan", "dashdot", 2.5, "legendonly"),
         ("Fusible 65K @611 (Cap. 100 kVAr)", i_plot, curva_fusible(i_plot, 65.0, K=K_FUSIBLE_K, n=2.5, umbral_pu=1.35), "olive", "dashdot", 2.5, "legendonly"),
         ("ITM 634 (BT ref. a 4.16kV)", i_plot, curva_itm(i_plot * NXFM1, ir=IR_BT, isd=ISD_BT, ii=II_BT), "darkred", "solid", 2.5, "legendonly"),
